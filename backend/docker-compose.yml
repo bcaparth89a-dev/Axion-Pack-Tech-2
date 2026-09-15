@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # AXION PackTech Express API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axion-packtech-api
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - API_PREFIX=/api/v1
+      - MONGODB_URI=mongodb://root:mongopassword@mongodb:27017/axion_packtech?authSource=admin
+      - REDIS_URL=redis://redis:6379
+
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - JWT_SECRET=${JWT_SECRET:-production_super_secret_jwt_key_at_least_32_characters}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-dummy_account}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-dummy_key}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-dummy_secret}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-axion-packtech-media}
+      - R2_ENDPOINT=${R2_ENDPOINT:-https://82d68227f53960cf7c0c9d32e7243ae4.r2.cloudflarestorage.com}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL:-https://media.axionpacktech.com}
+
+      # Cloudflare Turnstile Verification
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-1x0000000000000000000000000000000AA}
+      - CLOUDFLARE_TURNSTILE_SECRET_KEY=${CLOUDFLARE_TURNSTILE_SECRET_KEY:-1x0000000000000000000000000000000AA}
+
+      # Brevo SMTP Configuration
+      - SMTP_HOST=${SMTP_HOST:-smtp-relay.brevo.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-pawarparth233@gmail.com}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-Axion PackTech}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-bcaparth89a@gmail.com}
+      - EMAIL_TEST_RECIPIENT=${EMAIL_TEST_RECIPIENT:-}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - axion-network
+
+  # MongoDB Service with persistent volume & healthcheck
+  mongodb:
+    image: mongo:7.0
+    container_name: axion-packtech-mongodb
+    restart: always
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-mongopassword}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE:-axion_packtech}
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - axion-network
+
+  # Redis Shared Cache with persistent volume & healthcheck
+  redis:
+    image: redis:7.2-alpine
+    container_name: axion-packtech-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - axion-network
+
+networks:
+  axion-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local

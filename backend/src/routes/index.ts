@@ -1,0 +1,40 @@
+import { Router } from 'express';
+import healthRoutes from './health.routes.js';
+import authRoutes from './auth.routes.js';
+import industryRoutes from './industry.routes.js';
+import serviceRoutes from './service.routes.js';
+import careerRoutes from './career.routes.js';
+import newsRoutes from './news.routes.js';
+import blogRoutes from './blog.routes.js';
+import pagesRoutes from './pages.routes.js';
+import contactRoutes from './contact.routes.js';
+import catalogLeadRoutes from './catalogLead.routes.js';
+import mediaRoutes from './media.routes.js';
+import siteSettingsRoutes from './siteSettings.routes.js';
+import adminRoutes from './admin.routes.js';
+import categoryRoutes from './category.routes.js';
+import productRoutes from './product.routes.js';
+import productModelRoutes from './productModel.routes.js';
+import { catalogProductRoutes } from './catalogProduct.routes.js';
+
+const apiRouter = Router();
+
+apiRouter.use('/health', healthRoutes);
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/catalog-leads', catalogLeadRoutes);
+apiRouter.use('/catalog-products', catalogProductRoutes);
+apiRouter.use('/categories', categoryRoutes);
+apiRouter.use('/products', productRoutes);
+apiRouter.use('/models', productModelRoutes);
+apiRouter.use('/industries', industryRoutes);
+apiRouter.use('/services', serviceRoutes);
+apiRouter.use('/careers', careerRoutes);
+apiRouter.use('/news', newsRoutes);
+apiRouter.use('/blogs', blogRoutes);
+apiRouter.use('/pages', pagesRoutes);
+apiRouter.use('/contact', contactRoutes);
+apiRouter.use('/media', mediaRoutes);
+apiRouter.use('/settings', siteSettingsRoutes);
+
+export default apiRouter;

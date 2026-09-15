@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #0B192C;
+  --color-brand-navy-dark: #060D17;
+  --color-brand-blue: #0284C7;
+  --color-brand-steel: #1E56A0;
+  --color-brand-light: #F8FAFC;
+  --color-brand-orange: #EA580C;
+  --color-brand-orange-light: #F97316;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0B192C;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
