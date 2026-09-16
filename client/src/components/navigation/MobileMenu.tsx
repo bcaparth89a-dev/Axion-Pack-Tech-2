@@ -17,6 +17,367 @@ interface MobileMenuProps {
   activeItem?: string;
 }
 
+interface MobileCatalogNodeProps {
+  node: CategoryTreeNode;
+  parentPath: string;
+  depth: number;
+  expandedMap: Record<string, boolean>;
+  onToggle: (id: string) => void;
+  onClose: () => void;
+}
+
+function MobileCatalogNode({
+  node,
+  parentPath,
+  depth,
+  expandedMap,
+  onToggle,
+  onClose,
+}: MobileCatalogNodeProps) {
+  const currentPath = `${parentPath}/${node.slug}`;
+  const isExpanded = !!expandedMap[node._id];
+  const isProduct = node.type === "product";
+  const isModel = node.type === "model";
+
+  // 1. If it's a standalone / root Product
+  if (isProduct) {
+    const hasModels = Array.isArray(node.models) && node.models.length > 0;
+    if (hasModels) {
+      return (
+        <div className="rounded-lg border border-slate-800/80 bg-white/[0.02] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => onToggle(node._id)}
+            className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-2 min-w-0 pr-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+              <span className="truncate text-left">{node.name}</span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[9px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40 font-bold">
+                PROD
+              </span>
+              <span className="text-[9px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                {node.models!.length}M
+              </span>
+              <svg
+                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                  isExpanded ? "rotate-180 text-amber-400" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </button>
+
+          {isExpanded && (
+            <div className="border-t border-slate-800/60 bg-[#081B33]/60 px-3 py-2 space-y-1.5">
+              <Link
+                href={currentPath}
+                onClick={onClose}
+                className="flex items-center justify-between text-[11px] font-bold text-amber-400 hover:text-amber-300 py-1 mb-1 border-b border-slate-700/40"
+              >
+                <span>Explore {node.name} Details</span>
+                <span>→</span>
+              </Link>
+              <div className="space-y-1">
+                {node.models!.map((mod) => (
+                  <Link
+                    key={mod._id}
+                    href={`${currentPath}/${mod.slug}`}
+                    onClick={onClose}
+                    className="flex items-center justify-between py-1.5 px-2.5 rounded-lg hover:bg-white/5 text-[11px] text-slate-300 hover:text-amber-400 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="h-1 w-1 rounded-full bg-orange-400 shrink-0" />
+                      <span className="truncate">{mod.name}</span>
+                    </div>
+                    {mod.modelNumber && (
+                      <span className="text-[9px] font-mono text-orange-400 bg-orange-950/60 px-1 py-0.5 rounded border border-orange-800/40 ml-1.5 shrink-0">
+                        {mod.modelNumber}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Direct Product link (no models)
+    return (
+      <Link
+        href={currentPath}
+        onClick={onClose}
+        className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-white/5 text-xs text-slate-300 hover:text-white transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+          <span className="truncate">{node.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40 font-bold">
+            PROD
+          </span>
+          <span className="text-slate-500 text-xs">→</span>
+        </div>
+      </Link>
+    );
+  }
+
+  // 2. Standalone Model
+  if (isModel) {
+    return (
+      <Link
+        href={currentPath}
+        onClick={onClose}
+        className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-white/5 text-xs text-slate-300 hover:text-white transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+          <span className="truncate">{node.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-mono text-orange-400 bg-orange-950/60 px-1.5 py-0.5 rounded border border-orange-800/40 font-bold">
+            MODEL
+          </span>
+          <span className="text-slate-500 text-xs">→</span>
+        </div>
+      </Link>
+    );
+  }
+
+  // 3. Category / Subcategory
+  const hasSubcategories = Array.isArray(node.children) && node.children.length > 0;
+  const hasProducts = Array.isArray(node.products) && node.products.length > 0;
+  const hasChildren = hasSubcategories || hasProducts;
+
+  if (!hasChildren) {
+    return (
+      <Link
+        href={currentPath}
+        onClick={onClose}
+        className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-white/5 text-xs text-slate-300 hover:text-white transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shrink-0" />
+          <span className="truncate">{node.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-mono text-sky-400 bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-800/40 font-bold">
+            CAT
+          </span>
+          <span className="text-slate-500 text-xs">→</span>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-800/80 bg-white/[0.02] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onToggle(node._id)}
+        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0 pr-2">
+          <span
+            className={`h-1.5 w-1.5 rounded-full shrink-0 transition-colors ${
+              isExpanded
+                ? "bg-amber-400 shadow-[0_0_6px_#f59e0b]"
+                : depth === 0
+                ? "bg-sky-400"
+                : "bg-slate-500"
+            }`}
+          />
+          <span className="truncate text-left">{node.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-mono text-sky-400 bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-800/40 font-bold">
+            {depth === 0 ? "CAT" : "SUB"}
+          </span>
+          <span className="text-[9px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+            {(node.children?.length || 0) + (node.products?.length || 0)}
+          </span>
+          <svg
+            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+              isExpanded ? "rotate-180 text-amber-400" : ""
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
+      </button>
+
+      {/* Expanded Sub-Tree */}
+      {isExpanded && (
+        <div className="border-t border-slate-800/60 bg-[#081B33]/60 px-3 py-2 space-y-1.5">
+          {/* Direct Category Overview Link */}
+          <Link
+            href={currentPath}
+            onClick={onClose}
+            className="flex items-center justify-between text-[11px] font-bold text-amber-400 hover:text-amber-300 py-1 mb-1 border-b border-slate-700/40"
+          >
+            <span>Explore {node.name} Overview</span>
+            <span>→</span>
+          </Link>
+
+          {/* Subcategories */}
+          {hasSubcategories && (
+            <div className="space-y-1 pt-0.5">
+              <span className="text-[9px] font-mono uppercase text-sky-400 font-bold block px-1 tracking-wider">
+                Sub-Divisions
+              </span>
+              <div className="space-y-1">
+                {node.children.map((child) => (
+                  <MobileCatalogNode
+                    key={child._id}
+                    node={child}
+                    parentPath={currentPath}
+                    depth={depth + 1}
+                    expandedMap={expandedMap}
+                    onToggle={onToggle}
+                    onClose={onClose}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Direct Products */}
+          {hasProducts && (
+            <div className="space-y-1 pt-1">
+              <span className="text-[9px] font-mono uppercase text-sky-400 font-bold block px-1 tracking-wider">
+                Equipment Solutions
+              </span>
+              <div className="space-y-1">
+                {node.products.map((prod) => {
+                  const prodPath = `${currentPath}/${prod.slug}`;
+                  const hasModels = Array.isArray(prod.models) && prod.models.length > 0;
+                  const isProdExpanded = !!expandedMap[prod._id];
+
+                  if (hasModels) {
+                    return (
+                      <div
+                        key={prod._id}
+                        className="rounded-lg border border-slate-800/60 bg-white/[0.01] overflow-hidden"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => onToggle(prod._id)}
+                          className="w-full flex items-center justify-between px-2.5 py-2 text-[11px] font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 pr-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                            <span className="truncate text-left">{prod.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[9px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40 font-bold">
+                              PROD
+                            </span>
+                            <span className="text-[9px] font-mono text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40">
+                              {prod.models!.length} Models
+                            </span>
+                            <svg
+                              className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
+                                isProdExpanded ? "rotate-180 text-amber-400" : ""
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {isProdExpanded && (
+                          <div className="border-t border-slate-800/50 bg-[#061527]/80 px-2.5 py-1.5 space-y-1">
+                            <Link
+                              href={prodPath}
+                              onClick={onClose}
+                              className="flex items-center justify-between text-[10px] font-bold text-sky-300 hover:text-white py-1 border-b border-slate-800"
+                            >
+                              <span>View All {prod.name} Models</span>
+                              <span>→</span>
+                            </Link>
+                            {prod.models!.map((mod) => (
+                              <Link
+                                key={mod._id}
+                                href={`${prodPath}/${mod.slug}`}
+                                onClick={onClose}
+                                className="flex items-center justify-between py-1 px-1.5 rounded hover:bg-white/5 text-[10px] text-slate-300 hover:text-amber-400 transition-colors"
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="h-1 w-1 rounded-full bg-orange-400 shrink-0" />
+                                  <span className="truncate">{mod.name}</span>
+                                </div>
+                                {mod.modelNumber && (
+                                  <span className="text-[9px] font-mono text-orange-400 bg-orange-950/60 px-1 py-0.5 rounded border border-orange-800/40 ml-1.5 shrink-0">
+                                    {mod.modelNumber}
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={prod._id}
+                      href={prodPath}
+                      onClick={onClose}
+                      className="flex items-center justify-between py-1.5 px-2.5 rounded-lg hover:bg-sky-600/20 text-[11px] text-slate-300 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                        <span className="truncate">{prod.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[9px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40 font-bold">
+                          PROD
+                        </span>
+                        <span className="text-slate-500 text-xs">→</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MobileMenu({
   isOpen,
   onClose,
@@ -36,17 +397,23 @@ export default function MobileMenu({
     });
   }, [isOpen]);
 
-
-  const [expandedCategorySlug, setExpandedCategorySlug] = useState<string | null>(null);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Record<string, boolean>>({});
   const [isIndustriesExpanded, setIsIndustriesExpanded] = useState(false);
   const [isServicesExpanded, setIsServicesExpanded] = useState(false);
   const [isNewsExpanded, setIsNewsExpanded] = useState(false);
   const [isBlogExpanded, setIsBlogExpanded] = useState(false);
 
+  const toggleNode = useCallback((id: string) => {
+    setExpandedNodeIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }, []);
+
   // Close and reset accordion states
   const handleClose = useCallback(() => {
     setIsProductsExpanded(false);
-    setExpandedCategorySlug(null);
+    setExpandedNodeIds({});
     setIsIndustriesExpanded(false);
     setIsServicesExpanded(false);
     setIsNewsExpanded(false);
@@ -76,10 +443,6 @@ export default function MobileMenu({
     }
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, handleClose]);
-
-  const toggleCategory = (slug: string) => {
-    setExpandedCategorySlug((prev) => (prev === slug ? null : slug));
-  };
 
   return (
     <>
@@ -199,85 +562,17 @@ export default function MobileMenu({
                   <span>→</span>
                 </Link>
 
-                {categoriesTree.map((cat) => {
-                  const isCatExpanded = expandedCategorySlug === cat.slug;
-                  return (
-                    <div
-                      key={cat._id}
-                      className="rounded-lg border border-slate-800/80 bg-white/[0.02] overflow-hidden"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleCategory(cat.slug)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/5"
-                      >
-                        <span className="truncate text-left">{cat.name}</span>
-                        <svg
-                          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
-                            isCatExpanded ? "rotate-180 text-brand-orange" : ""
-                          }`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </button>
-
-                      {/* Level 2: Subcategories & Equipment */}
-                      {isCatExpanded && (
-                        <div className="border-t border-slate-800/60 bg-[#081B33]/60 px-3 py-2 space-y-1">
-                          <Link
-                            href={`/products/${cat.slug}`}
-                            onClick={handleClose}
-                            className="block text-[11px] font-bold text-amber-400 hover:text-white py-1 mb-1 border-b border-slate-700/40"
-                          >
-                            Explore {cat.name} →
-                          </Link>
-
-                          {cat.children && cat.children.length > 0 && (
-                            <div className="py-1 space-y-1">
-                              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block px-2">Subcategories</span>
-                              {cat.children.map((child) => (
-                                <Link
-                                  key={child._id}
-                                  href={`/products/${cat.slug}/${child.slug}`}
-                                  onClick={handleClose}
-                                  className="flex items-center gap-2.5 py-1 px-2 rounded hover:bg-white/5 text-[11px] text-slate-300 hover:text-amber-400 transition-colors"
-                                >
-                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-                                  <span className="truncate">{child.name}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          )}
-
-                          {cat.products && cat.products.length > 0 && (
-                            <div className="py-1 space-y-1">
-                              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block px-2">Equipment</span>
-                              {cat.products.map((prod) => (
-                                <Link
-                                  key={prod._id}
-                                  href={`/products/${cat.slug}/${prod.slug}`}
-                                  onClick={handleClose}
-                                  className="flex items-center gap-2.5 py-1 px-2 rounded hover:bg-sky-600/20 text-[11px] text-slate-300 hover:text-white transition-colors"
-                                >
-                                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shrink-0" />
-                                  <span className="truncate">{prod.name}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {categoriesTree.map((cat) => (
+                  <MobileCatalogNode
+                    key={cat._id}
+                    node={cat}
+                    parentPath="/products"
+                    depth={0}
+                    expandedMap={expandedNodeIds}
+                    onToggle={toggleNode}
+                    onClose={handleClose}
+                  />
+                ))}
               </div>
             )}
           </div>

@@ -1,25 +1,14 @@
 import { cache } from 'react';
 import { apiClient, ApiError } from './client';
-import {
-  BlogPost,
-  BlogCategory,
-  blogPosts as staticPosts,
-  blogCategories as staticCategories,
-  getBlogsByCategory as getStaticBlogPostsByCategory,
-  getFeaturedBlogs as getStaticFeaturedBlogPosts,
-  getRelatedBlogs as getStaticRelatedBlogPosts,
-  getBlogCategoryBySlug as getStaticCategoryBySlug,
-} from '@/data/blogs';
-
 export type { BlogPost, BlogCategory, BlogContentSection } from '@/data/blogs';
-
+import { BlogPost, BlogCategory } from '@/data/blogs';
 import { getSafeImageSrc } from '@/lib/utils/mediaUrl';
 
 function normalizeBlogPost(raw: Record<string, unknown>): BlogPost {
   const categorySlug =
     (raw.categorySlug as string) ||
     ((raw.category as string) ? (raw.category as string).toLowerCase().replace(/\s+/g, '-') : '') ||
-    'packaging-technology';
+    'general';
 
   const slug = (raw.slug as string) || '';
   const rawImage =
@@ -88,12 +77,12 @@ export const getBlogCategories = cache(async (): Promise<BlogCategory[]> => {
       revalidate: 300,
       tags: ['blogs', 'blog-categories'],
     });
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       return data;
     }
-    return staticCategories;
+    return [];
   } catch {
-    return staticCategories;
+    return [];
   }
 });
 
@@ -103,11 +92,9 @@ export const getBlogCategories = cache(async (): Promise<BlogCategory[]> => {
 export async function getBlogCategoryBySlug(slug: string): Promise<BlogCategory | undefined> {
   try {
     const cats = await getBlogCategories();
-    const found = cats.find((c) => c.slug.toLowerCase() === slug.toLowerCase());
-    if (found) return found;
-    return getStaticCategoryBySlug(slug);
+    return cats.find((c) => c.slug.toLowerCase() === (slug || '').toLowerCase());
   } catch {
-    return getStaticCategoryBySlug(slug);
+    return undefined;
   }
 }
 
@@ -137,9 +124,9 @@ export const getAllBlogPosts = cache(
       if (res && Array.isArray(res.items)) {
         return res.items.map(normalizeBlogPost);
       }
-      return staticPosts;
+      return [];
     } catch {
-      return staticPosts;
+      return [];
     }
   }
 );
@@ -177,11 +164,9 @@ export const getBlogBySlug = getBlogPostBySlug;
 export async function getBlogPostsByCategory(categorySlug: string): Promise<BlogPost[]> {
   try {
     const all = await getAllBlogPosts({ categorySlug });
-    const filtered = all.filter((b) => b.category.toLowerCase() === categorySlug.toLowerCase());
-    if (filtered.length > 0) return filtered;
-    return getStaticBlogPostsByCategory(categorySlug);
+    return all.filter((b) => b.category.toLowerCase() === (categorySlug || '').toLowerCase());
   } catch {
-    return getStaticBlogPostsByCategory(categorySlug);
+    return [];
   }
 }
 
@@ -194,10 +179,9 @@ export async function getFeaturedBlogPosts(limit: number = 3): Promise<BlogPost[
     const featured = all.filter((b) => b.featured).slice(0, limit);
     if (featured.length > 0) return featured;
     const recent = await getAllBlogPosts({ limit });
-    if (recent.length > 0) return recent.slice(0, limit);
-    return getStaticFeaturedBlogPosts(limit);
+    return recent.slice(0, limit);
   } catch {
-    return getStaticFeaturedBlogPosts(limit);
+    return [];
   }
 }
 
@@ -213,11 +197,9 @@ export async function getRelatedBlogPosts(
 ): Promise<BlogPost[]> {
   try {
     const categoryPosts = await getBlogPostsByCategory(categorySlug);
-    const related = categoryPosts.filter((b) => b.slug !== currentSlug).slice(0, limit);
-    if (related.length > 0) return related;
-    return getStaticRelatedBlogPosts(currentSlug, limit);
+    return categoryPosts.filter((b) => b.slug !== currentSlug).slice(0, limit);
   } catch {
-    return getStaticRelatedBlogPosts(currentSlug, limit);
+    return [];
   }
 }
 
@@ -245,7 +227,7 @@ export async function getRelatedBlogs(currentSlug: string, limit: number = 3): P
     );
     return [...sameCategory, ...remaining].slice(0, limit);
   } catch {
-    return getStaticRelatedBlogPosts(currentSlug, limit);
+    return [];
   }
 }
 

@@ -28,8 +28,15 @@ export const loginThrottleGuard = async (
     const throttleStatus = await loginThrottleService.isThrottled(email, ip);
 
     if (throttleStatus.isThrottled) {
+      const remainingMinutes = Math.ceil(throttleStatus.remainingSeconds / 60);
+      const timeMsg =
+        throttleStatus.remainingSeconds > 60
+          ? `${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}`
+          : `${throttleStatus.remainingSeconds} seconds`;
       return next(
-        AppError.tooManyRequests('Too many login attempts. Account temporarily throttled for 15 minutes.')
+        AppError.tooManyRequests(
+          `Too many login attempts. Account temporarily throttled for ${timeMsg}.`
+        )
       );
     }
 

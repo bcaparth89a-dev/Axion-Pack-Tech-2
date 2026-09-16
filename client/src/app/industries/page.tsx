@@ -36,7 +36,7 @@ export default async function IndustriesOverviewPage() {
             }}
           />
 
-          <div className="relative z-10 mx-auto max-w-7xl px-6 sm:px-8 lg:px-12 text-center">
+          <div className="relative z-10 container-wide text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-950/70 px-4 py-1.5 text-xs font-semibold tracking-wider text-sky-200 uppercase shadow-inner">
               <span className="h-2 w-2 rounded-full bg-brand-orange shadow-[0_0_8px_#ea580c]" />
               Industries We Serve
@@ -59,7 +59,7 @@ export default async function IndustriesOverviewPage() {
         </section>
 
         {/* 8 Industries Grid: 4 cols on desktop, 2 cols on tablet, 1 on mobile */}
-        <section className="py-16 sm:py-24 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        <section className="py-16 sm:py-24 container-wide">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-8 border-b border-slate-200">
             <div>
               <span className="text-xs font-mono uppercase tracking-widest text-sky-700 font-bold">
@@ -74,51 +74,70 @@ export default async function IndustriesOverviewPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mt-10">
-            {industriesData.map((ind) => (
-              <Link
-                key={ind.slug}
-                href={`/industries/${ind.slug}`}
-                className="group flex flex-col rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-sky-300"
-              >
-                {/* Industry Image */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
-                  <CmsImage
-                    src={ind.image}
-                    alt={ind.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-60" />
+          {industriesData.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mt-10">
+              {industriesData.map((ind) => (
+                <Link
+                  key={ind.slug}
+                  href={`/industries/${ind.slug}`}
+                  className="group flex flex-col rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-sky-300"
+                >
+                  {/* Industry Image */}
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900">
+                    <CmsImage
+                      src={ind.image}
+                      alt={ind.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-60" />
 
-                  {/* Icon Badge */}
-                  <div className="absolute top-3 left-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/95 backdrop-blur-md text-base shadow border border-white/60 group-hover:scale-110 transition-transform">
-                      {ind.icon}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors">
-                      {ind.title}
-                    </h3>
-                    <p className="mt-1.5 text-xs text-slate-600 leading-relaxed line-clamp-2">
-                      {ind.shortDescription}
-                    </p>
+                    {/* Icon Badge */}
+                    <div className="absolute top-3 left-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/95 backdrop-blur-md text-base shadow border border-white/60 group-hover:scale-110 transition-transform">
+                        {ind.icon}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-sky-700 group-hover:text-brand-orange transition-colors">
-                    <span>Explore Industry</span>
-                    <span className="transition-transform group-hover:translate-x-1">→</span>
+                  {/* Card Body */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-800 transition-colors">
+                        {ind.title}
+                      </h3>
+                      <p className="mt-1.5 text-xs text-slate-600 leading-relaxed line-clamp-2">
+                        {ind.shortDescription}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-sky-700 group-hover:text-brand-orange transition-colors">
+                      <span>Explore Industry</span>
+                      <span className="transition-transform group-hover:translate-x-1">→</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-12 text-center max-w-2xl mx-auto shadow-sm">
+              <span className="text-4xl block mb-3">🏭</span>
+              <h3 className="text-lg font-bold text-slate-900">Industry Sectors Coming Soon</h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                We engineer bespoke packaging and automation machinery for diverse manufacturing sectors. Contact our engineering team for specialized sector inquiries.
+              </p>
+              <div className="mt-6">
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-orange px-6 py-3 text-xs font-bold text-white hover:bg-brand-orange-light transition-all shadow-md active:scale-95"
+                >
+                  <span>Contact Engineering Team</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Bottom Custom Advisory Banner */}
           <div className="mt-16 rounded-3xl bg-gradient-to-br from-[#061527] to-[#0B1E36] p-8 sm:p-12 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">

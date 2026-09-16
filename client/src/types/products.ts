@@ -83,6 +83,7 @@ export interface CategoryTreeNode {
   _id: string;
   name: string;
   slug: string;
+  type?: 'category' | 'product' | 'model';
   catalogProductId?: string | null;
   parentCategoryId?: string | null;
   parentId?: string | null;
@@ -110,6 +111,31 @@ export interface CategoryTreeNode {
     };
     displayOrder: number;
     modelCount?: number;
+    models?: Array<{
+      _id: string;
+      name: string;
+      slug: string;
+      modelNumber?: string;
+      shortDescription?: string;
+      media?: {
+        image?: string;
+        heroImage?: string;
+      };
+      displayOrder?: number;
+    }>;
+  }>;
+  modelCount?: number;
+  models?: Array<{
+    _id: string;
+    name: string;
+    slug: string;
+    modelNumber?: string;
+    shortDescription?: string;
+    media?: {
+      image?: string;
+      heroImage?: string;
+    };
+    displayOrder?: number;
   }>;
 }
 
@@ -189,16 +215,33 @@ export interface ProductModelItem {
   updatedAt?: string;
 }
 
+export interface CatalogChildItem {
+  _id: string;
+  name: string;
+  slug: string;
+  type: 'category' | 'product' | 'model';
+  modelNumber?: string;
+  shortDescription?: string;
+  description?: string;
+  media?: ProductMedia;
+  displayOrder?: number;
+  isActive?: boolean;
+  modelCount?: number;
+  isFeatured?: boolean;
+}
+
 export interface CategoryDetailResponse {
   category: CategoryItem;
   children: CategoryItem[];
   products: ProductItem[];
+  directChildren?: CatalogChildItem[];
   breadcrumbs: BreadcrumbItem[];
 }
 
 export interface ProductDetailResponse {
   product: ProductItem;
   models: ProductModelItem[];
+  directChildren?: CatalogChildItem[];
   breadcrumbs: BreadcrumbItem[];
   fullPath: string;
 }
@@ -206,6 +249,24 @@ export interface ProductDetailResponse {
 export interface ModelDetailResponse {
   model: ProductModelItem;
   product: ProductItem;
+  directChildren?: CatalogChildItem[];
   breadcrumbs: BreadcrumbItem[];
   fullPath: string;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  slug: string;
+  entityType: 'category' | 'product' | 'model';
+  modelNumber?: string;
+  categoryName?: string;
+  productName?: string;
+  categorySlug?: string;
+  productSlug?: string;
+  thumbnail: string;
+  shortDescription?: string;
+  description?: string;
+  catalogPdf: CatalogPdf;
+  displayOrder: number;
 }

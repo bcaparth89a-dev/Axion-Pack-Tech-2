@@ -357,7 +357,7 @@ export default function WhyChooseUs({ data }: WhyChooseUsProps) {
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+      <div className="relative container-wide">
         {/* ====================================================
             HEADER: Centered Badge, Title & Decorative Accent
         ==================================================== */}

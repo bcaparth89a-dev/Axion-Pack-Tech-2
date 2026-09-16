@@ -169,7 +169,7 @@ export default function VisionMission({ data }: VisionMissionProps) {
 
   return (
     <section className="relative w-full bg-white py-20 sm:py-28 text-slate-800 border-b border-slate-200/80">
-      <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+      <div className="container-wide">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-sky-700 uppercase tracking-wider">

@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { CatalogPdf } from '@/types/products';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
-import CatalogLeadModal from './CatalogLeadModal';
+
+const CatalogLeadModal = dynamic(() => import('./CatalogLeadModal'), {
+  ssr: false,
+});
 
 export interface CatalogPdfSectionProps {
   catalogPdf?: CatalogPdf;
@@ -52,8 +56,8 @@ export default function CatalogPdfSection({
   return (
     <>
       <section id="catalog" className={`py-16 border-b border-slate-800/80 bg-[#081220]/60 ${className}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-[#0a1829] to-slate-900 border border-slate-800/90 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
+        <div className="container-wide">
+          <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-[#0a1829] to-slate-900 border border-slate-800/90 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
             {/* Subtle accent glow */}
             <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 

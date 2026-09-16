@@ -8,12 +8,19 @@ export const ALLOWED_IMAGE_MIMES = [
   'image/gif',
   'image/svg+xml',
   'image/avif',
+  'image/heic',
+  'image/bmp',
+  'image/tiff',
 ] as const;
 
 export const ALLOWED_VIDEO_MIMES = [
   'video/mp4',
   'video/webm',
   'video/quicktime', // .mov
+  'video/x-matroska', // .mkv
+  'video/ogg',
+  'video/m4v',
+  'video/x-msvideo', // .avi
 ] as const;
 
 export const ALLOWED_DOCUMENT_MIMES = [
@@ -30,6 +37,51 @@ export const ALL_ALLOWED_MIMES = [
   ...ALLOWED_VIDEO_MIMES,
   ...ALLOWED_DOCUMENT_MIMES,
 ] as const;
+
+export function normalizeMimeType(fileName?: string, reportedMime?: string): string {
+  const mime = (reportedMime || '').toLowerCase().trim();
+  if (mime && ALL_ALLOWED_MIMES.includes(mime as any)) {
+    return mime === 'image/jpg' ? 'image/jpeg' : mime;
+  }
+
+  const ext = (fileName || '').split('.').pop()?.toLowerCase() || '';
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'avif':
+      return 'image/avif';
+    case 'mp4':
+    case 'm4v':
+      return 'video/mp4';
+    case 'webm':
+      return 'video/webm';
+    case 'mov':
+      return 'video/quicktime';
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc':
+      return 'application/msword';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'xls':
+      return 'application/vnd.ms-excel';
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'txt':
+      return 'text/plain';
+    default:
+      return mime || 'application/octet-stream';
+  }
+}
 
 export const MAX_IMAGE_SIZE = 25 * 1024 * 1024; // 25MB
 export const MAX_VIDEO_SIZE = 150 * 1024 * 1024; // 150MB
@@ -56,15 +108,7 @@ export const initiateUploadSchema = z.object({
       .trim()
       .min(1, 'File name is required')
       .max(255, 'File name too long'),
-    contentType: z
-      .string()
-      .trim()
-      .refine(
-        (mime) => ALL_ALLOWED_MIMES.includes(mime.toLowerCase() as any),
-        (mime) => ({
-          message: `Unsupported file type: "${mime}". Supported types: JPG, PNG, WebP, GIF, SVG, MP4, WebM, MOV, PDF.`,
-        })
-      ),
+    contentType: z.string().trim(),
     size: z
       .number()
       .int()
@@ -78,7 +122,19 @@ export const initiateUploadSchema = z.object({
       .default('general'),
     entityType: z.string().trim().optional(),
     entityId: z.string().trim().optional(),
-  }),
+  }).transform((data) => {
+    const normalized = normalizeMimeType(data.fileName, data.contentType);
+    return {
+      ...data,
+      contentType: normalized,
+    };
+  }).refine(
+    (data) => ALL_ALLOWED_MIMES.includes(data.contentType as any),
+    (data) => ({
+      message: `Unsupported file type: "${data.contentType}". Supported types: JPG, PNG, WebP, GIF, SVG, AVIF, MP4, WebM, MOV, PDF.`,
+      path: ['contentType'],
+    })
+  ),
 });
 
 export const completeUploadSchema = z.object({

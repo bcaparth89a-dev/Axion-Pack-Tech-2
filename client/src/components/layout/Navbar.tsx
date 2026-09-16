@@ -24,6 +24,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: "About Us", href: "/about-us" },
   { name: "Products", href: "/products", dropdownType: "products" },
+  { name: "Catalogs", href: "/catalogs" },
   { name: "Industries", href: "/industries", dropdownType: "industries" },
   { name: "Services", href: "/services", dropdownType: "services" },
   { name: "Careers", href: "/careers" },
@@ -42,8 +43,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      // Toggle compact sticky state when scrolled past initial hero threshold
-      if (window.scrollY > 80) {
+      if (window.scrollY > 40) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
@@ -71,21 +71,21 @@ export default function Navbar() {
   return (
     <>
       {/* Mobile & Tablet Navbar Header (Visible on screens < lg) */}
-      <header className="lg:hidden sticky top-0 z-40 w-full bg-[#061527]/95 backdrop-blur-md border-b border-sky-900/50 shadow-md">
-        <div className="flex h-14 sm:h-16 items-center justify-between px-3.5 sm:px-6 max-w-7xl mx-auto">
-          {/* Official Logo (Vertically centered, compact) */}
+      <header className="lg:hidden sticky top-0 z-40 w-full bg-[#040911]/95 backdrop-blur-xl border-b border-slate-800 shadow-xl">
+        <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 w-full">
+          {/* Official Logo */}
           <Link
             href="/"
             onClick={() => setActiveItem("")}
             className="flex items-center transition-transform duration-200 active:scale-95"
             aria-label="AXION PackTech Home"
           >
-            <div className="rounded-lg bg-white px-2.5 py-1 shadow-sm border border-slate-100 flex items-center justify-center">
+            <div className="rounded-xl bg-white px-2.5 py-1 shadow-sm border border-slate-200 flex items-center justify-center">
               <Image
                 src="/logo.jpeg"
                 alt="AXION PackTech"
-                width={110}
-                height={26}
+                width={120}
+                height={28}
                 priority
                 className="h-6 sm:h-7 w-auto object-contain"
               />
@@ -93,14 +93,14 @@ export default function Navbar() {
           </Link>
 
           {/* Right Action Group */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Quick Contact CTA for Tablet/Large Mobile */}
             <Link
               href="/contact"
               onClick={() => setActiveItem("Contact Us")}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-sky-600/20 border border-sky-400/30 text-sky-200 px-3 py-1.5 text-xs font-bold transition-all hover:bg-brand-orange hover:text-white hover:border-brand-orange active:scale-95"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-brand-orange text-white px-3.5 py-1.5 text-xs font-bold transition-all hover:bg-brand-orange-light shadow-sm active:scale-95"
             >
-              <span>Contact</span>
+              <span>Get Quote</span>
               <span className="text-xs">→</span>
             </Link>
 
@@ -111,7 +111,7 @@ export default function Navbar() {
                 setIsMobileMenuOpen(true);
               }}
               aria-label="Open navigation menu"
-              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-sky-500/30 bg-[#0B1E36] text-slate-200 shadow-sm transition-all duration-200 hover:bg-sky-900/60 hover:text-white hover:border-sky-400 active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-500/30 bg-[#0B1E36] text-slate-200 shadow-sm transition-all duration-200 hover:bg-sky-900/60 hover:text-white hover:border-sky-400 active:scale-95 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             >
               <div className="flex flex-col items-center justify-center gap-1">
                 <span className="h-0.5 w-[18px] rounded-full bg-slate-200 transition-colors" />
@@ -123,32 +123,32 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Desktop Floating to Sticky Navbar (Visible on lg and larger screens) */}
-      <div className="hidden lg:block sticky top-3 z-40 w-full px-6 transition-all duration-300">
+      {/* Desktop Floating to Sticky Navbar (Visible on lg and larger screens) - 94% Wide Viewport Container */}
+      <div className="hidden lg:block sticky top-3 z-40 w-full px-4 sm:px-6 lg:px-8 transition-all duration-300">
         <nav
-          className={`relative mx-auto max-w-6xl transition-all duration-300 ease-in-out ${
+          className={`relative mx-auto w-[94vw] max-w-[1760px] transition-all duration-300 ease-in-out ${
             isScrolled
-              ? "rounded-xl bg-[#061527]/95 py-2.5 px-6 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.6),0_0_20px_rgba(2,132,199,0.2)] border border-sky-500/30 backdrop-blur-md"
-              : "rounded-2xl bg-[#0B1E36]/90 py-3.5 px-8 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.4),0_0_24px_rgba(2,132,199,0.12)] border border-white/15 backdrop-blur-md"
+              ? "rounded-2xl bg-[#040911]/95 py-2 px-6 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8),0_0_20px_rgba(2,132,199,0.2)] border border-sky-500/30 backdrop-blur-xl"
+              : "rounded-2xl bg-[#061527]/90 py-3 px-8 shadow-[0_20px_45px_-10px_rgba(0,0,0,0.6),0_0_24px_rgba(2,132,199,0.15)] border border-white/10 backdrop-blur-xl"
           }`}
           aria-label="Main Navigation"
         >
-          <div className="flex items-center justify-between">
-            {/* Left: Official AXION PackTech Logo (Acts as Home Button) */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Left: Official AXION PackTech Logo */}
             <Link
               href="/"
               onClick={() => {
                 setActiveItem("");
                 setActiveDropdown(null);
               }}
-              className="group flex items-center transition-transform duration-200 hover:scale-[1.02]"
+              className="group flex items-center transition-transform duration-200 hover:scale-[1.02] shrink-0"
               aria-label="AXION PackTech Home"
             >
-              <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm border border-slate-100/50">
+              <div className="rounded-xl bg-white px-3.5 py-1.5 shadow-sm border border-slate-200">
                 <Image
                   src="/logo.jpeg"
                   alt="AXION PackTech"
-                  width={140}
+                  width={150}
                   height={38}
                   priority
                   className="h-8 w-auto object-contain"
@@ -156,8 +156,8 @@ export default function Navbar() {
               </div>
             </Link>
 
-            {/* Center/Right: Navigation Links */}
-            <ul className="flex items-center space-x-1 xl:space-x-2">
+            {/* Center: Navigation Links */}
+            <ul className="flex items-center space-x-1 xl:space-x-1.5">
               {navItems.map((item) => {
                 const isActive =
                   activeItem === item.name ||
@@ -177,9 +177,9 @@ export default function Navbar() {
                         onClick={() => {
                           setActiveItem(item.name);
                         }}
-                        className={`relative inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium tracking-wide transition-colors duration-200 rounded-lg ${
+                        className={`relative inline-flex items-center gap-1.5 px-3.5 py-2 text-xs xl:text-sm font-semibold tracking-wide transition-colors duration-200 rounded-xl ${
                           isActive || isDropdownOpen
-                            ? "text-white font-semibold bg-white/10"
+                            ? "text-white font-bold bg-white/10 shadow-inner"
                             : "text-slate-200 hover:text-sky-300 hover:bg-white/5"
                         }`}
                         aria-expanded={isDropdownOpen}
@@ -221,9 +221,9 @@ export default function Navbar() {
                         setActiveItem(item.name);
                         setActiveDropdown(null);
                       }}
-                      className={`relative px-3.5 py-2 text-sm font-medium tracking-wide transition-colors duration-200 rounded-lg ${
+                      className={`relative px-3.5 py-2 text-xs xl:text-sm font-semibold tracking-wide transition-colors duration-200 rounded-xl ${
                         isActive
-                          ? "text-white font-semibold"
+                          ? "text-white font-bold bg-white/10"
                           : "text-slate-200 hover:text-sky-300 hover:bg-white/5"
                       }`}
                     >
@@ -239,21 +239,28 @@ export default function Navbar() {
               })}
             </ul>
 
-            {/* Right: Contact Us CTA Link */}
-            <div className="flex items-center">
+            {/* Right: Engineering Advisory / Contact CTA Group */}
+            <div className="flex items-center gap-3 shrink-0">
+              <Link
+                href="/catalogs"
+                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-400/20 bg-sky-950/40 text-sky-300 hover:text-white hover:border-sky-400 text-xs font-mono font-medium transition-all"
+              >
+                <span>📄 Catalogs</span>
+              </Link>
+
               <Link
                 href="/contact"
                 onClick={() => {
                   setActiveItem("Contact Us");
                   setActiveDropdown(null);
                 }}
-                className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-200 ${
+                className={`relative inline-flex items-center gap-2 rounded-xl px-5 py-2 text-xs xl:text-sm font-bold tracking-wide transition-all duration-200 shadow-md ${
                   activeItem === "Contact Us" || pathname === "/contact"
-                    ? "bg-brand-orange text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]"
-                    : "bg-sky-600/20 text-sky-200 border border-sky-400/30 hover:bg-brand-orange hover:text-white hover:border-brand-orange hover:shadow-[0_0_15px_rgba(234,88,12,0.3)] active:scale-95"
+                    ? "bg-brand-orange text-white shadow-[0_0_18px_rgba(234,88,12,0.5)]"
+                    : "bg-brand-orange text-white hover:bg-brand-orange-light hover:shadow-[0_0_20px_rgba(234,88,12,0.4)] active:scale-95"
                 }`}
               >
-                <span>Contact Us</span>
+                <span>Request Machine Quote</span>
                 <span className="text-xs transition-transform duration-200 group-hover:translate-x-0.5">
                   →
                 </span>

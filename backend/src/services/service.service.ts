@@ -2,6 +2,7 @@ import { Service, IService } from '../models/Service.model.js';
 import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_PATTERNS, CACHE_TTL } from '../constants/cacheKeys.js';
 import { AppError } from '../utils/appError.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export interface ServiceReorderItem {
   slug: string;
@@ -129,6 +130,7 @@ export class ServiceService {
       slug ? cacheService.deleteCached(CACHE_KEYS.SERVICE_DETAIL(slug)) : Promise.resolve(),
       cacheService.deleteCached(CACHE_KEYS.HOME_DATA),
     ]);
+    await triggerNextjsRevalidation(['/', '/services'], ['services', 'navbar', 'home']);
   }
 }
 

@@ -89,12 +89,26 @@ export default async function NewsOverviewPage() {
             </span>
           </div>
 
-          {/* News Grid (3 Columns Desktop, 2 Columns Tablet, 1 Column Mobile) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {allNews.map((article) => (
-              <NewsCard key={article.slug} article={article} />
-            ))}
-          </div>
+          {/* News Grid (3 Columns Desktop, 2 Columns Tablet, 1 Column Mobile) or Clean Empty State */}
+          {allNews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              {allNews.map((article) => (
+                <NewsCard key={article.slug} article={article} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-white border border-slate-200 p-12 text-center shadow-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 text-3xl mx-auto mb-4">
+                📰
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">
+                No News Articles Available Yet
+              </h3>
+              <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                We are preparing new announcements, case studies, and engineering updates. Please check back soon.
+              </p>
+            </div>
+          )}
         </div>
       </main>
 

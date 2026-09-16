@@ -5,6 +5,7 @@ import { CompanyStats, ICompanyStats } from '../models/CompanyStats.model.js';
 import { CategoryHero, ICategoryHero } from '../models/CategoryHero.model.js';
 import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_TTL } from '../constants/cacheKeys.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export class PagesService {
   // --------------------------------------------------------------------------
@@ -25,6 +26,7 @@ export class PagesService {
   async updateHomePage(data: Partial<IHomePage>): Promise<IHomePage> {
     const page = await HomePage.findOneAndUpdate({}, data, { new: true, upsert: true, runValidators: true });
     await cacheService.deleteCached(CACHE_KEYS.HOME_DATA);
+    await triggerNextjsRevalidation(['/'], ['home', 'pages']);
     return page as unknown as IHomePage;
   }
 
@@ -54,6 +56,7 @@ export class PagesService {
     );
     await cacheService.deleteCached(CACHE_KEYS.ABOUT_DATA);
     await cacheService.deleteByPattern('axion:public:about*');
+    await triggerNextjsRevalidation(['/about-us', '/about'], ['about-page', 'pages']);
     return page as unknown as IAboutPage;
   }
 
@@ -83,6 +86,7 @@ export class PagesService {
       runValidators: true,
     });
     await cacheService.deleteCached(CACHE_KEYS.RESPONSIBILITIES_DATA);
+    await triggerNextjsRevalidation(['/responsibilities', '/about-us'], ['pages', 'about-page']);
     return page as unknown as IResponsibilityPage;
   }
 
@@ -111,6 +115,7 @@ export class PagesService {
       cacheService.deleteCached(CACHE_KEYS.COMPANY_STATS),
       cacheService.deleteCached(CACHE_KEYS.HOME_DATA),
     ]);
+    await triggerNextjsRevalidation(['/', '/about-us'], ['company-stats', 'home', 'pages']);
     return stats as unknown as ICompanyStats;
   }
 
@@ -159,6 +164,7 @@ export class PagesService {
     );
 
     await cacheService.deleteCached(CACHE_KEYS.CATEGORY_HERO_DATA);
+    await triggerNextjsRevalidation(['/products'], ['catalog-tree', 'catalog-nav', 'categories']);
     return heroDoc.toObject() as unknown as ICategoryHero;
   }
 
@@ -175,6 +181,7 @@ export class PagesService {
     );
 
     await cacheService.deleteCached(CACHE_KEYS.CATEGORY_HERO_DATA);
+    await triggerNextjsRevalidation(['/products'], ['catalog-tree', 'catalog-nav', 'categories']);
     return heroDoc.toObject() as unknown as ICategoryHero;
   }
 
@@ -185,6 +192,7 @@ export class PagesService {
       { new: true }
     );
     await cacheService.deleteCached(CACHE_KEYS.CATEGORY_HERO_DATA);
+    await triggerNextjsRevalidation(['/products'], ['catalog-tree', 'catalog-nav', 'categories']);
   }
 }
 

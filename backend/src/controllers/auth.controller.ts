@@ -50,6 +50,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       data: {
         user: result.user,
         token: result.token,
+        refreshToken: result.refreshToken,
       },
       message: 'Login successful',
     });
@@ -79,6 +80,7 @@ export const refresh = async (req: Request, res: Response, next: NextFunction): 
       data: {
         user: result.user,
         token: result.token,
+        refreshToken: result.refreshToken,
       },
       message: 'Session refreshed successfully',
     });

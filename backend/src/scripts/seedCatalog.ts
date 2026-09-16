@@ -5,6 +5,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config();
 
 import { connectDB, disconnectDB } from '../config/db.js';
+import { initRedis, disconnectRedis } from '../config/redis.js';
 import { Category } from '../models/Category.model.js';
 import { Product } from '../models/Product.model.js';
 import { ProductModel } from '../models/ProductModel.model.js';
@@ -15,6 +16,7 @@ export const seedCatalog = async () => {
   try {
     logger.info('Connecting to MongoDB for catalog seeding...');
     await connectDB();
+    await initRedis();
 
     logger.info('Purging old Category, Product, and ProductModel collections...');
     await Promise.all([
@@ -529,6 +531,7 @@ export const seedCatalog = async () => {
     logger.error('Catalog seeding failed:', error);
     throw error;
   } finally {
+    await disconnectRedis();
     await disconnectDB();
   }
 };

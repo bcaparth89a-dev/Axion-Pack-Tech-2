@@ -54,11 +54,11 @@ export default async function CareersPage() {
       </div>
 
       {/* Hero Header */}
-      <CareerHero />
+      <CareerHero counts={counts} />
 
       {/* 3 Main Career Categories Gateway Section */}
       <section className="py-14 sm:py-20 bg-slate-100 border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container-wide">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-600 font-mono">
               OPPORTUNITY PATHWAYS
@@ -136,7 +136,7 @@ export default async function CareersPage() {
 
       {/* Why Work With Axion PackTech */}
       <section id="why-axion" className="py-16 sm:py-24 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container-wide">
           <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-18">
             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-600 font-mono mb-2">
               WHY JOIN US
@@ -173,7 +173,7 @@ export default async function CareersPage() {
 
       {/* Main Opportunities Listing Section */}
       <section id="opportunities" className="py-16 sm:py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container-wide">
           <div className="mb-10">
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-600 font-mono mb-1">
               CURRENT VACANCIES

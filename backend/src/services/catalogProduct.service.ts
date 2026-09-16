@@ -200,137 +200,87 @@ export class CatalogProductService {
   }
 
   /**
-   * Calculate exact counts across the 4 child tiers for safe deletion warnings.
+   * Calculate exact counts across all 4 tiers accurately for safe deletion warnings and metrics.
    */
   public async getCatalogProductStats(_productId?: string): Promise<CatalogProductStats> {
-    // 1. Main Categories (direct root categories)
-    const mainCategories = await Category.find(
-      {
-        parentCategoryId: null,
-      },
-      '_id'
-    ).lean();
-
-    const mainCategoryIds = mainCategories.map((c) => c._id);
-    if (mainCategoryIds.length === 0) {
-      return {
-        mainCategoriesCount: 0,
-        subCategoriesCount: 0,
-        productsCount: 0,
-        modelsCount: 0,
-      };
-    }
-
-    // 2. Sub Categories (descendants of main categories)
-    const allDescendantCategoryIds: mongoose.Types.ObjectId[] = [];
-    let currentLevelIds = [...mainCategoryIds];
-
-    while (currentLevelIds.length > 0) {
-      const nextChildren = await Category.find(
-        { parentCategoryId: { $in: currentLevelIds } },
-        '_id'
-      ).lean();
-      if (nextChildren.length === 0) break;
-      const nextIds = nextChildren.map((c) => c._id as mongoose.Types.ObjectId);
-      allDescendantCategoryIds.push(...nextIds);
-      currentLevelIds = nextIds;
-    }
-
-    // 3. Products in these categories
-    const allRelevantCategoryIds = [
-      ...mainCategoryIds,
-      ...allDescendantCategoryIds,
-    ];
-
-    const products = await Product.find(
-      { categoryId: { $in: allRelevantCategoryIds } },
-      '_id'
-    ).lean();
-    const productIds = products.map((p) => p._id);
-
-    // 4. Models for these products
-    const modelsCount =
-      productIds.length > 0
-        ? await ProductModel.countDocuments({ productId: { $in: productIds } })
-        : 0;
+    const [mainCategoriesCount, subCategoriesCount, productsCount, modelsCount] = await Promise.all([
+      Category.countDocuments({
+        $or: [{ parentCategoryId: null }, { parentCategoryId: { $exists: false } }],
+      }),
+      Category.countDocuments({
+        parentCategoryId: { $ne: null, $exists: true },
+      }),
+      Product.countDocuments({}),
+      ProductModel.countDocuments({}),
+    ]);
 
     return {
-      mainCategoriesCount: mainCategoryIds.length,
-      subCategoriesCount: allDescendantCategoryIds.length,
-      productsCount: products.length,
+      mainCategoriesCount,
+      subCategoriesCount,
+      productsCount,
       modelsCount,
     };
   }
 
   /**
-   * Builds the complete nested 4-tier tree for a CatalogProduct:
-   * Main Category -> Sub Category -> Product Item -> Model
+   * Builds the complete flexible graph hierarchy for the catalog:
+   * Supports any entity type (Category, Product, Model) nested under any other entity or at root.
+   * Guarantees 100% catalog coverage including parentless/root and mixed-hierarchy entities.
    */
   public async getCatalogProductTree(
-    productId: string,
+    _productId?: string,
     activeOnly: boolean = false
   ): Promise<CatalogHierarchyNode[]> {
-    const categoryFilter: Record<string, unknown> = {
-      parentCategoryId: null,
-    };
-    if (activeOnly) categoryFilter.isActive = true;
+    const filter = activeOnly ? { isActive: true } : {};
 
-    // Track all included entity IDs to guarantee zero orphaned/ghost entities
-    const includedCategoryIds = new Set<string>();
-    const includedProductIds = new Set<string>();
-    const includedModelIds = new Set<string>();
+    const [categories, products, models] = await Promise.all([
+      Category.find(filter).sort({ displayOrder: 1, name: 1 }).lean(),
+      Product.find(filter).sort({ displayOrder: 1, name: 1 }).lean(),
+      ProductModel.find(filter).sort({ displayOrder: 1, modelNumber: 1 }).lean(),
+    ]);
 
-    // Fetch all main categories
-    const mainCategories = await Category.find(categoryFilter)
-      .sort({ displayOrder: 1, name: 1 })
-      .lean();
+    const nodeMap = new Map<string, CatalogHierarchyNode>();
 
-    // Helper to map model docs to nodes
-    const mapModelDocToNode = (m: any, parentNodeId: string | null = null): CatalogHierarchyNode => {
-      includedModelIds.add(m._id.toString());
-      return {
-        _id: m._id.toString(),
-        name: m.name,
-        modelNumber: m.modelNumber,
-        slug: m.slug,
-        type: 'model',
-        shortDescription: m.shortDescription,
-        description: m.description,
-        image: m.media?.image,
-        heroImage: m.media?.heroImage,
-        displayOrder: m.displayOrder,
-        isActive: m.isActive,
-        parentId: m.parentId ? m.parentId.toString() : m.productId ? m.productId.toString() : parentNodeId,
-        parentType: m.parentType || (m.productId || parentNodeId ? 'product' : null),
-        specifications: m.specifications,
-        specificationsTable: m.specificationsTable,
-        features: m.features,
-        catalogPdf: m.catalogPdf,
-        galleryMedia: m.galleryMedia,
-        hero: m.hero,
-      };
-    };
+    // 1. Create Category nodes
+    for (const cat of categories) {
+      const parentKey = cat.parentId
+        ? cat.parentId.toString()
+        : cat.parentCategoryId
+        ? cat.parentCategoryId.toString()
+        : null;
 
-    // Helper to map product docs to nodes with their child models
-    const mapProductDocToNode = async (
-      prod: any,
-      parentCatId: string | null = null
-    ): Promise<CatalogHierarchyNode> => {
-      includedProductIds.add(prod._id.toString());
+      nodeMap.set(cat._id.toString(), {
+        _id: cat._id.toString(),
+        name: cat.name,
+        slug: cat.slug,
+        type: parentKey ? 'subCategory' : 'mainCategory',
+        shortDescription: cat.shortDescription,
+        description: cat.description,
+        image: cat.media?.image,
+        heroImage: cat.media?.heroImage,
+        displayOrder: cat.displayOrder || 0,
+        isActive: cat.isActive,
+        parentId: parentKey,
+        parentType: cat.parentType || (parentKey ? 'category' : 'catalogProduct'),
+        features: cat.features,
+        applications: cat.applications,
+        benefits: cat.benefits,
+        catalogPdf: cat.catalogPdf,
+        galleryMedia: cat.galleryMedia,
+        hero: cat.hero,
+        children: [],
+      });
+    }
 
-      const modelFilter: Record<string, unknown> = {
-        $or: [{ productId: prod._id }, { parentId: prod._id }],
-      };
-      if (activeOnly) modelFilter.isActive = true;
-      const modelDocs = await ProductModel.find(modelFilter)
-        .sort({ displayOrder: 1, modelNumber: 1 })
-        .lean();
+    // 2. Create Product nodes
+    for (const prod of products) {
+      const parentKey = prod.parentId
+        ? prod.parentId.toString()
+        : prod.categoryId
+        ? prod.categoryId.toString()
+        : null;
 
-      const modelNodes: CatalogHierarchyNode[] = modelDocs.map((m: any) =>
-        mapModelDocToNode(m, prod._id.toString())
-      );
-
-      return {
+      nodeMap.set(prod._id.toString(), {
         _id: prod._id.toString(),
         name: prod.name,
         slug: prod.slug,
@@ -339,14 +289,10 @@ export class CatalogProductService {
         description: prod.description,
         image: prod.media?.image,
         heroImage: prod.media?.heroImage,
-        displayOrder: prod.displayOrder,
+        displayOrder: prod.displayOrder || 0,
         isActive: prod.isActive,
-        parentId: prod.parentId
-          ? prod.parentId.toString()
-          : prod.categoryId
-          ? prod.categoryId.toString()
-          : parentCatId,
-        parentType: prod.parentType || (prod.categoryId || parentCatId ? 'category' : null),
+        parentId: parentKey,
+        parentType: prod.parentType || (prod.categoryId ? 'category' : null),
         features: prod.features,
         infoPoints: prod.infoPoints,
         specifications: prod.specifications,
@@ -355,102 +301,66 @@ export class CatalogProductService {
         catalogPdf: prod.catalogPdf,
         galleryMedia: prod.galleryMedia,
         hero: prod.hero,
-        children: modelNodes,
-      };
+        children: [],
+      });
+    }
+
+    // 3. Create Model nodes
+    for (const mod of models) {
+      const parentKey = mod.parentId
+        ? mod.parentId.toString()
+        : mod.productId
+        ? mod.productId.toString()
+        : null;
+
+      nodeMap.set(mod._id.toString(), {
+        _id: mod._id.toString(),
+        name: mod.name,
+        modelNumber: mod.modelNumber,
+        slug: mod.slug,
+        type: 'model',
+        shortDescription: mod.shortDescription,
+        description: mod.description,
+        image: mod.media?.image,
+        heroImage: mod.media?.heroImage,
+        displayOrder: mod.displayOrder || 0,
+        isActive: mod.isActive,
+        parentId: parentKey,
+        parentType: mod.parentType || (mod.productId ? 'product' : null),
+        specifications: mod.specifications,
+        specificationsTable: mod.specificationsTable,
+        features: mod.features,
+        catalogPdf: mod.catalogPdf,
+        galleryMedia: mod.galleryMedia,
+        hero: mod.hero,
+        children: [],
+      });
+    }
+
+    // 4. Assemble hierarchy graph
+    const rootNodes: CatalogHierarchyNode[] = [];
+    for (const [id, node] of nodeMap.entries()) {
+      if (node.parentId && nodeMap.has(node.parentId) && node.parentId !== id) {
+        const parentNode = nodeMap.get(node.parentId)!;
+        parentNode.children = parentNode.children || [];
+        parentNode.children.push(node);
+      } else {
+        rootNodes.push(node);
+      }
+    }
+
+    // 5. Recursively sort all children
+    const sortNodesRecursively = (nodes: CatalogHierarchyNode[]) => {
+      nodes.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0) || a.name.localeCompare(b.name));
+      for (const node of nodes) {
+        if (node.children && node.children.length > 0) {
+          sortNodesRecursively(node.children);
+        }
+      }
     };
+    sortNodesRecursively(rootNodes);
 
-    // Helper to recursively build category tree
-    const buildCategorySubtree = async (
-      catDoc: any,
-      isRoot: boolean
-    ): Promise<CatalogHierarchyNode> => {
-      const catId = catDoc._id;
-      includedCategoryIds.add(catId.toString());
-
-      // 1. Fetch child categories
-      const subCatFilter: Record<string, unknown> = {
-        $or: [{ parentCategoryId: catId }, { parentId: catId }],
-      };
-      if (activeOnly) subCatFilter.isActive = true;
-      const subCategories = await Category.find(subCatFilter)
-        .sort({ displayOrder: 1, name: 1 })
-        .lean();
-
-      // 2. Fetch direct product items for this category
-      const productFilter: Record<string, unknown> = {
-        $or: [{ categoryId: catId }, { parentId: catId }],
-      };
-      if (activeOnly) productFilter.isActive = true;
-      const productDocs = await Product.find(productFilter)
-        .sort({ displayOrder: 1, name: 1 })
-        .lean();
-
-      // 3. For each product item, fetch its models
-      const productNodes: CatalogHierarchyNode[] = await Promise.all(
-        productDocs.map(async (prod) => mapProductDocToNode(prod, catId.toString()))
-      );
-
-      // Recursively build subcategories
-      const subCatNodes = await Promise.all(
-        subCategories.map((sc) => buildCategorySubtree(sc, false))
-      );
-
-      return {
-        _id: catId.toString(),
-        name: catDoc.name,
-        slug: catDoc.slug,
-        type: isRoot ? 'mainCategory' : 'subCategory',
-        shortDescription: catDoc.shortDescription,
-        description: catDoc.description,
-        image: catDoc.media?.image,
-        heroImage: catDoc.media?.heroImage,
-        displayOrder: catDoc.displayOrder,
-        isActive: catDoc.isActive,
-        parentId: catDoc.parentId
-          ? catDoc.parentId.toString()
-          : catDoc.parentCategoryId
-          ? catDoc.parentCategoryId.toString()
-          : productId,
-        parentType: catDoc.parentType || (isRoot ? 'catalogProduct' : 'category'),
-        features: catDoc.features,
-        applications: catDoc.applications,
-        benefits: catDoc.benefits,
-        catalogPdf: catDoc.catalogPdf,
-        galleryMedia: catDoc.galleryMedia,
-        hero: catDoc.hero,
-        children: [...subCatNodes, ...productNodes],
-      };
-    };
-
-    const categoryTree = await Promise.all(
-      mainCategories.map((mc) => buildCategorySubtree(mc, true))
-    );
-
-    // 4. Retrieve ALL products not already nested in the category tree (root or orphan products)
-    const unnestedProductFilter: Record<string, unknown> = {
-      _id: { $nin: Array.from(includedProductIds).map((id) => new mongoose.Types.ObjectId(id)) },
-    };
-    if (activeOnly) unnestedProductFilter.isActive = true;
-    const unnestedProducts = await Product.find(unnestedProductFilter)
-      .sort({ displayOrder: 1, name: 1 })
-      .lean();
-
-    const rootProductNodes = await Promise.all(
-      unnestedProducts.map((prod) => mapProductDocToNode(prod, null))
-    );
-
-    // 5. Retrieve ALL models not already nested under products (root or orphan models)
-    const unnestedModelFilter: Record<string, unknown> = {
-      _id: { $nin: Array.from(includedModelIds).map((id) => new mongoose.Types.ObjectId(id)) },
-    };
-    if (activeOnly) unnestedModelFilter.isActive = true;
-    const unnestedModels = await ProductModel.find(unnestedModelFilter)
-      .sort({ displayOrder: 1, modelNumber: 1 })
-      .lean();
-
-    const rootModelNodes = unnestedModels.map((m) => mapModelDocToNode(m, null));
-
-    return [...categoryTree, ...rootProductNodes, ...rootModelNodes];
+    return rootNodes;
   }
 
   /**

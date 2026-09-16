@@ -39,7 +39,7 @@ export default function ResponsibilitiesSection({ data }: ResponsibilitiesSectio
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+      <div className="relative container-wide">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
           {/* ====================================================
               LEFT COLUMN: High-Quality Sustainability Image

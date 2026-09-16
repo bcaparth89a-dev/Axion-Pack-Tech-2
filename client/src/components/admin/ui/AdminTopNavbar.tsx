@@ -234,27 +234,50 @@ export const AdminTopNavbar: React.FC = () => {
     return dropdown.items.some((item) => pathname.startsWith(item.href.split('?')[0]));
   };
 
+  // Helper to format breadcrumb from pathname
+  const getBreadcrumb = () => {
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length <= 1) return 'Dashboard Overview';
+    const last = segments[segments.length - 1];
+    return last
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  };
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#050e18]/95 backdrop-blur-md border-b border-slate-800/90 text-slate-200 select-none">
+    <header className="sticky top-0 z-40 w-full bg-[#050e18]/95 backdrop-blur-md border-b border-slate-800 text-slate-200 select-none">
       <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
-        {/* LEFT: Logo & Brand */}
-        <div className="flex items-center gap-6 shrink-0">
-          <Link
-            href="/admin"
-            className="flex items-center gap-2.5 group transition-transform active:scale-95"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white font-black text-sm tracking-wider group-hover:scale-105 transition-transform">
+        {/* LEFT: Logo & Location Breadcrumbs */}
+        <div className="flex items-center gap-3.5 shrink-0 min-w-0">
+          {/* Admin Portal Brand Logo & Title */}
+          <Link href="/admin" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-sky-950 transition-transform group-hover:scale-105">
               AX
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-extrabold tracking-tight text-white uppercase group-hover:text-sky-300 transition-colors leading-tight">
+              <span className="text-xs font-black tracking-tight text-white uppercase leading-tight group-hover:text-sky-300 transition-colors">
                 AXION PackTech
               </span>
-              <span className="text-[10px] text-sky-400 font-bold tracking-widest uppercase leading-tight">
-                ADMIN PORTAL
+              <span className="text-[10px] text-sky-400 font-mono leading-tight tracking-wider uppercase hidden sm:inline">
+                Admin Console
               </span>
             </div>
           </Link>
+
+          {/* Desktop Breadcrumb Trail */}
+          <div className="hidden md:flex items-center gap-2 text-xs pl-3 border-l border-slate-800">
+            <Link
+              href="/admin"
+              className="text-slate-400 hover:text-white transition-colors font-medium"
+            >
+              Dashboard
+            </Link>
+            <span className="text-slate-600">/</span>
+            <span className="text-sky-200 font-bold tracking-tight truncate max-w-xs">
+              {getBreadcrumb()}
+            </span>
+          </div>
         </div>
 
         {/* CENTER / DESKTOP HORIZONTAL NAVIGATION (Large & Medium Desktop) */}

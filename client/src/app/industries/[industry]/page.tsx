@@ -110,7 +110,7 @@ export default async function IndustryDetailPage({
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#061527] to-transparent" />
           </div>
 
-          <div className="relative z-10 mx-auto max-w-7xl px-6 sm:px-8 lg:px-12 py-20 w-full">
+          <div className="relative z-10 container-wide py-20 w-full">
             {/* Breadcrumb */}
             <nav
               className="flex items-center gap-2 text-xs font-mono text-slate-300 mb-6"
@@ -152,7 +152,7 @@ export default async function IndustryDetailPage({
         </section>
 
         {/* Main Content Sections Container */}
-        <div className="py-16 sm:py-24 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-20">
+        <div className="py-16 sm:py-24 container-wide space-y-20">
           {/* 1. Industry Overview */}
           <section className="rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 shadow-sm">
             <div className="max-w-3xl space-y-4">

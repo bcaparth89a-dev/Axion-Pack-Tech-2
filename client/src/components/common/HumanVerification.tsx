@@ -1,6 +1,13 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+} from 'react';
 
 declare global {
   interface Window {
@@ -12,6 +19,11 @@ declare global {
           theme?: 'light' | 'dark' | 'auto';
           action?: string;
           cData?: string;
+          appearance?: 'always' | 'execute' | 'interaction-only';
+          retry?: 'auto' | 'never';
+          'retry-interval'?: number;
+          'refresh-expired'?: 'auto' | 'manual' | 'never';
+          'refresh-timeout'?: 'auto' | 'manual' | 'never';
           callback?: (token: string) => void;
           'expired-callback'?: () => void;
           'error-callback'?: (error: unknown) => void;
@@ -38,7 +50,9 @@ export interface HumanVerificationProps {
   className?: string;
 }
 
-// Global script loading promise to guarantee the Turnstile script is added to <head> only once
+type VerificationStatus = 'loading' | 'verifying' | 'verified' | 'expired' | 'error' | 'timeout';
+
+// Global script loading promise to ensure Turnstile script is added to document only once
 let turnstileScriptPromise: Promise<void> | null = null;
 
 function loadTurnstileScript(): Promise<void> {
@@ -55,8 +69,15 @@ function loadTurnstileScript(): Promise<void> {
   }
 
   turnstileScriptPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src*="challenges.cloudflare.com/turnstile"]'
+    );
+
     if (existing) {
+      if (window.turnstile) {
+        resolve();
+        return;
+      }
       const checkInterval = setInterval(() => {
         if (window.turnstile) {
           clearInterval(checkInterval);
@@ -66,8 +87,8 @@ function loadTurnstileScript(): Promise<void> {
       setTimeout(() => {
         clearInterval(checkInterval);
         if (window.turnstile) resolve();
-        else reject(new Error('Turnstile script timeout'));
-      }, 5000);
+        else reject(new Error('Turnstile script load timeout'));
+      }, 7000);
       return;
     }
 
@@ -95,61 +116,38 @@ const HumanVerification = forwardRef<HumanVerificationRef, HumanVerificationProp
       onExpire,
       onError,
       action = 'submit',
-      theme = 'dark',
+      theme = 'auto',
       className = '',
     },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
     const widgetIdRef = useRef<string | null>(null);
-    const [isScriptReady, setIsScriptReady] = useState(false);
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const isMountedRef = useRef(true);
 
-    const siteKey =
-      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
-      '1x00000000000000000000AA'; // Cloudflare official test sitekey (always passes)
+    // Keep stable callback refs to prevent unnecessary re-rendering and widget thrashing
+    const onVerifyRef = useRef(onVerify);
+    const onExpireRef = useRef(onExpire);
+    const onErrorRef = useRef(onError);
 
-    // Expose reset method to parent forms
-    useImperativeHandle(ref, () => ({
-      reset: () => {
-        if (widgetIdRef.current && window.turnstile) {
-          try {
-            window.turnstile.reset(widgetIdRef.current);
-          } catch {
-            // ignore reset errors
-          }
-        }
-      },
-    }));
-
-    // 1. Load script once
     useEffect(() => {
-      let isMounted = true;
-      loadTurnstileScript()
-        .then(() => {
-          if (isMounted) {
-            setIsScriptReady(true);
-          }
-        })
-        .catch((err) => {
-          if (isMounted) {
-            setLoadError('Security verification failed to load. Please check network connection.');
-            if (onError) onError(err);
-          }
-        });
+      onVerifyRef.current = onVerify;
+      onExpireRef.current = onExpire;
+      onErrorRef.current = onError;
+    });
 
-      return () => {
-        isMounted = false;
-      };
-    }, [onError]);
+    const [status, setStatus] = useState<VerificationStatus>('loading');
+    const [isSlow, setIsSlow] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // 2. Render widget into container safely
-    useEffect(() => {
-      if (!isScriptReady || !containerRef.current || !window.turnstile) {
-        return;
-      }
+    const siteKey = (
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
+    ).trim();
 
-      // Clean up previous widget instance if one exists
+    const renderWidget = useCallback(() => {
+      if (!containerRef.current || !window.turnstile) return;
+
+      // Clean up existing instance if already rendered
       if (widgetIdRef.current) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -159,57 +157,114 @@ const HumanVerification = forwardRef<HumanVerificationRef, HumanVerificationProp
         widgetIdRef.current = null;
       }
 
-      // Clear any previous child nodes to prevent duplicate frames in React StrictMode
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
+      containerRef.current.innerHTML = '';
+      setStatus('verifying');
+      setIsSlow(false);
+      setErrorMessage(null);
 
       try {
         const widgetId = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          theme,
-          action,
+          theme: theme || 'auto',
+          action: action || 'submit',
+          appearance: 'always',
+          retry: 'auto',
+          'retry-interval': 5000,
+          'refresh-expired': 'auto',
+          'refresh-timeout': 'auto',
           callback: (token: string) => {
-            onVerify(token);
+            if (!isMountedRef.current) return;
+            setStatus('verified');
+            setIsSlow(false);
+            setErrorMessage(null);
+            onVerifyRef.current?.(token);
           },
           'expired-callback': () => {
-            if (onExpire) onExpire();
-            if (widgetIdRef.current && window.turnstile) {
-              try {
-                window.turnstile.reset(widgetIdRef.current);
-              } catch {
-                // ignore
-              }
-            }
+            if (!isMountedRef.current) return;
+            setStatus('expired');
+            onExpireRef.current?.();
           },
           'error-callback': (err: unknown) => {
-            if (onError) onError(err);
-            if (widgetIdRef.current && window.turnstile) {
-              try {
-                window.turnstile.reset(widgetIdRef.current);
-              } catch {
-                // ignore
-              }
-            }
+            if (!isMountedRef.current) return;
+            setStatus('error');
+            setErrorMessage('Security check encountered an issue. Retrying...');
+            onErrorRef.current?.(err);
           },
           'timeout-callback': () => {
-            if (onExpire) onExpire();
-            if (widgetIdRef.current && window.turnstile) {
-              try {
-                window.turnstile.reset(widgetIdRef.current);
-              } catch {
-                // ignore
-              }
-            }
+            if (!isMountedRef.current) return;
+            setStatus('timeout');
+            setErrorMessage('Security challenge timed out. Retrying...');
+            onExpireRef.current?.();
           },
         });
 
         widgetIdRef.current = widgetId;
-      } catch (renderError) {
-        if (onError) onError(renderError);
+      } catch (err) {
+        if (!isMountedRef.current) return;
+        setStatus('error');
+        setErrorMessage('Unable to initialize verification widget.');
+        onErrorRef.current?.(err);
       }
+    }, [siteKey, theme, action]);
+
+    const resetWidget = useCallback(() => {
+      if (widgetIdRef.current && window.turnstile) {
+        try {
+          window.turnstile.reset(widgetIdRef.current);
+          setStatus('verifying');
+          setIsSlow(false);
+          setErrorMessage(null);
+          return;
+        } catch {
+          // fallback to full re-render
+        }
+      }
+      renderWidget();
+    }, [renderWidget]);
+
+    // Expose reset imperative method to parent forms
+    useImperativeHandle(
+      ref,
+      () => ({
+        reset: () => {
+          resetWidget();
+        },
+      }),
+      [resetWidget]
+    );
+
+    // Watchdog timer: If verification takes longer than 10 seconds, offer manual retry
+    useEffect(() => {
+      if (status === 'verifying' || status === 'loading') {
+        const timer = setTimeout(() => {
+          if (isMountedRef.current && (status === 'verifying' || status === 'loading')) {
+            setIsSlow(true);
+          }
+        }, 10000);
+        return () => clearTimeout(timer);
+      }
+    }, [status]);
+
+    // Load script and render widget once on mount
+    useEffect(() => {
+      isMountedRef.current = true;
+
+      loadTurnstileScript()
+        .then(() => {
+          if (isMountedRef.current) {
+            renderWidget();
+          }
+        })
+        .catch((err) => {
+          if (isMountedRef.current) {
+            setStatus('error');
+            setErrorMessage('Failed to load security script. Please check your internet connection.');
+            onErrorRef.current?.(err);
+          }
+        });
 
       return () => {
+        isMountedRef.current = false;
         if (widgetIdRef.current && window.turnstile) {
           try {
             window.turnstile.remove(widgetIdRef.current);
@@ -219,24 +274,58 @@ const HumanVerification = forwardRef<HumanVerificationRef, HumanVerificationProp
           widgetIdRef.current = null;
         }
       };
-    }, [isScriptReady, siteKey, theme, action, onVerify, onExpire, onError]);
+    }, [renderWidget]);
 
     return (
       <div className={`my-2 select-none ${className}`}>
-        <div className="min-h-[66px] flex items-center justify-center p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
-          <div ref={containerRef} />
-          {!isScriptReady && !loadError && (
-            <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-              <svg className="animate-spin h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span>Loading security challenge...</span>
+        <div className="min-h-[66px] flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 transition-colors">
+          {/* Turnstile explicit container */}
+          <div
+            ref={containerRef}
+            className="flex items-center justify-center"
+            style={{ display: status === 'verified' ? 'none' : 'block' }}
+          />
+
+          {/* Controlled Status & Loading Indicators */}
+          {status === 'loading' && (
+            <div className="flex items-center gap-2 text-xs text-slate-400 py-1.5">
+              <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+              <span>Initializing security verification...</span>
             </div>
           )}
-          {loadError && (
-            <div className="text-xs text-rose-400 py-2 text-center">
-              {loadError}
+
+          {status === 'verified' && (
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 py-1.5 px-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30">
+              <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Human verification completed</span>
+            </div>
+          )}
+
+          {errorMessage && status !== 'verified' && (
+            <div className="flex flex-col items-center gap-1 text-center py-1">
+              <span className="text-xs text-amber-400">{errorMessage}</span>
+              <button
+                type="button"
+                onClick={resetWidget}
+                className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 underline mt-0.5 cursor-pointer"
+              >
+                Click here to retry verification
+              </button>
+            </div>
+          )}
+
+          {isSlow && status !== 'verified' && !errorMessage && (
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+              <span>Taking longer than usual?</span>
+              <button
+                type="button"
+                onClick={resetWidget}
+                className="text-sky-400 hover:text-sky-300 font-semibold underline cursor-pointer"
+              >
+                Retry check
+              </button>
             </div>
           )}
         </div>

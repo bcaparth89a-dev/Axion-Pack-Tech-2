@@ -4,6 +4,7 @@ import { AdminUser } from './types';
 export interface LoginResponse {
   user: AdminUser;
   token: string;
+  refreshToken?: string;
 }
 
 export async function loginAdmin(email: string, password: string): Promise<LoginResponse> {
@@ -17,7 +18,7 @@ export async function loginAdmin(email: string, password: string): Promise<Login
     throw new Error('Access denied. Administrator privileges are required.');
   }
 
-  setStoredToken(result.token);
+  setStoredToken(result.token, result.refreshToken);
   return result;
 }
 

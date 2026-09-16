@@ -1,17 +1,7 @@
 import { cache } from 'react';
 import { apiClient, ApiError } from './client';
-import {
-  NewsArticle,
-  NewsCategory,
-  newsArticles as staticArticles,
-  newsCategories as staticCategories,
-  getNewsByCategory as getStaticNewsByCategory,
-  getFeaturedNews as getStaticFeaturedArticles,
-  getRelatedNews as getStaticRelatedArticles,
-  getNewsCategoryBySlug as getStaticCategoryBySlug,
-} from '@/data/news';
-
 export type { NewsArticle, NewsCategory, ArticleSection } from '@/data/news';
+import { NewsArticle, NewsCategory } from '@/data/news';
 
 function normalizeNewsArticle(raw: Record<string, unknown>): NewsArticle {
   const categorySlug =
@@ -96,12 +86,12 @@ export const getNewsCategories = cache(async (): Promise<NewsCategory[]> => {
       revalidate: 300,
       tags: ['news', 'news-categories'],
     });
-    if (Array.isArray(data) && data.length > 0) {
+    if (Array.isArray(data)) {
       return data;
     }
-    return staticCategories;
+    return [];
   } catch {
-    return staticCategories;
+    return [];
   }
 });
 
@@ -113,11 +103,9 @@ export const getAllCategories = getNewsCategories;
 export async function getNewsCategoryBySlug(slug: string): Promise<NewsCategory | undefined> {
   try {
     const cats = await getNewsCategories();
-    const found = cats.find((c) => c.slug.toLowerCase() === slug.toLowerCase());
-    if (found) return found;
-    return getStaticCategoryBySlug(slug);
+    return cats.find((c) => c.slug.toLowerCase() === (slug || '').toLowerCase());
   } catch {
-    return getStaticCategoryBySlug(slug);
+    return undefined;
   }
 }
 
@@ -147,9 +135,9 @@ export const getAllNewsArticles = cache(
       if (res && Array.isArray(res.items)) {
         return res.items.map(normalizeNewsArticle);
       }
-      return staticArticles;
+      return [];
     } catch {
-      return staticArticles;
+      return [];
     }
   }
 );
@@ -182,11 +170,9 @@ export const getNewsBySlug = cache(
 export async function getNewsByCategory(categorySlug: string): Promise<NewsArticle[]> {
   try {
     const all = await getAllNewsArticles({ categorySlug });
-    const filtered = all.filter((a) => a.categorySlug.toLowerCase() === categorySlug.toLowerCase());
-    if (filtered.length > 0) return filtered;
-    return getStaticNewsByCategory(categorySlug);
+    return all.filter((a) => a.categorySlug.toLowerCase() === (categorySlug || '').toLowerCase());
   } catch {
-    return getStaticNewsByCategory(categorySlug);
+    return [];
   }
 }
 
@@ -199,10 +185,9 @@ export async function getFeaturedNews(limit: number = 3): Promise<NewsArticle[]>
     const featured = all.filter((a) => a.featured).slice(0, limit);
     if (featured.length > 0) return featured;
     const allRecent = await getAllNewsArticles({ limit });
-    if (allRecent.length > 0) return allRecent.slice(0, limit);
-    return getStaticFeaturedArticles(limit);
+    return allRecent.slice(0, limit);
   } catch {
-    return getStaticFeaturedArticles(limit);
+    return [];
   }
 }
 
@@ -218,11 +203,9 @@ export async function getRelatedArticles(
 ): Promise<NewsArticle[]> {
   try {
     const categoryArticles = await getNewsByCategory(categorySlug);
-    const related = categoryArticles.filter((a) => a.slug !== currentSlug).slice(0, limit);
-    if (related.length > 0) return related;
-    return getStaticRelatedArticles(currentSlug, limit);
+    return categoryArticles.filter((a) => a.slug !== currentSlug).slice(0, limit);
   } catch {
-    return getStaticRelatedArticles(currentSlug, limit);
+    return [];
   }
 }
 
@@ -244,6 +227,6 @@ export async function getRelatedNews(currentSlug: string, count: number = 3): Pr
     );
     return [...sameCategory, ...otherCategory].slice(0, count);
   } catch {
-    return getStaticRelatedArticles(currentSlug, count);
+    return [];
   }
 }

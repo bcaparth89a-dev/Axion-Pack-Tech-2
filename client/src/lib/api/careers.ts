@@ -5,12 +5,8 @@ import {
   CareerType,
   CareerCategorySlug,
   CareerCategoryInfo,
-  careerOpportunities as staticCareers,
   careerCategories as staticCareerCategories,
-  getCareerBySlug as getStaticCareerBySlug,
-  getCareersByType as getStaticCareersByType,
   getCategoryBySlug as getStaticCategoryBySlug,
-  getCareerCounts as getStaticCareerCounts,
   typeToCategorySlug,
   categorySlugToType,
 } from '@/data/careers';
@@ -19,8 +15,6 @@ export type { CareerOpportunity, CareerType, CareerCategorySlug, CareerCategoryI
 export { typeToCategorySlug, categorySlugToType };
 
 export const careerCategories = staticCareerCategories;
-export const careers = staticCareers;
-export const careerOpportunities = staticCareers;
 
 function normalizeCareer(raw: Record<string, unknown>): CareerOpportunity {
   return {
@@ -56,7 +50,7 @@ function normalizeCareer(raw: Record<string, unknown>): CareerOpportunity {
 }
 
 /**
- * Fetch all careers with live API data.
+ * Fetch all careers with live API data from MongoDB.
  */
 export const getAllCareers = cache(
   async (params?: {
@@ -79,9 +73,9 @@ export const getAllCareers = cache(
       if (res && Array.isArray(res.items)) {
         return res.items.map(normalizeCareer);
       }
-      return staticCareers;
+      return [];
     } catch {
-      return staticCareers;
+      return [];
     }
   }
 );
@@ -108,7 +102,7 @@ export async function submitCareerApplication(
 }
 
 /**
- * Fetch a single career by slug (supports both single slug and type + slug).
+ * Fetch a single career by slug from MongoDB.
  */
 export const getCareerBySlug = cache(
   async (
@@ -126,10 +120,7 @@ export const getCareerBySlug = cache(
       }
       return undefined;
     } catch {
-      const fallback = opportunitySlug
-        ? getStaticCareerBySlug(typeOrSlug, opportunitySlug)
-        : staticCareers.find((c) => c.slug === actualSlug);
-      return fallback ? normalizeCareer(fallback as unknown as Record<string, unknown>) : undefined;
+      return undefined;
     }
   }
 );
@@ -140,11 +131,9 @@ export const getCareerBySlug = cache(
 export async function getCareersByType(type: CareerType): Promise<CareerOpportunity[]> {
   try {
     const all = await getAllCareers({ type });
-    const filtered = all.filter((c) => c.type === type && c.isActive);
-    if (filtered.length > 0) return filtered;
-    return getStaticCareersByType(type);
+    return all.filter((c) => c.type === type && c.isActive);
   } catch {
-    return getStaticCareersByType(type);
+    return [];
   }
 }
 
@@ -177,12 +166,11 @@ export const getCareerCounts = cache(
         apprenticeships: active.filter((c) => c.type === 'apprenticeship').length,
       };
     } catch {
-      const sc = getStaticCareerCounts();
       return {
-        all: sc.total,
-        jobs: sc.jobs,
-        internships: sc.internships,
-        apprenticeships: sc.apprenticeships,
+        all: 0,
+        jobs: 0,
+        internships: 0,
+        apprenticeships: 0,
       };
     }
   }

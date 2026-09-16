@@ -590,14 +590,13 @@ export default function CareerApplicationForm({
           </label>
           <HumanVerification
             ref={turnstileRef}
+            action="career_application"
             onVerify={(token) => setTurnstileToken(token)}
             onExpire={() => {
               setTurnstileToken("");
-              turnstileRef.current?.reset();
             }}
             onError={() => {
               setTurnstileToken("");
-              turnstileRef.current?.reset();
             }}
           />
         </div>

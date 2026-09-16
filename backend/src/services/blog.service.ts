@@ -5,6 +5,7 @@ import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_PATTERNS, CACHE_TTL } from '../constants/cacheKeys.js';
 import { getPagination, buildPaginatedResponse, PaginatedResponse } from '../utils/pagination.js';
 import { AppError } from '../utils/appError.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export interface BlogQueryParams {
   page?: string | number;
@@ -312,13 +313,14 @@ export class BlogService {
     return updated as unknown as IBlog[];
   }
 
-  private async invalidateCache(slug?: string): Promise<void> {
+  public async invalidateCache(slug?: string): Promise<void> {
     await Promise.all([
       cacheService.deleteByPattern(CACHE_PATTERNS.ALL_BLOGS),
       slug ? cacheService.deleteCached(CACHE_KEYS.BLOG_DETAIL(slug)) : Promise.resolve(),
       cacheService.deleteCached(CACHE_KEYS.BLOG_CATEGORIES),
       cacheService.deleteCached(CACHE_KEYS.HOME_DATA),
     ]);
+    await triggerNextjsRevalidation(['/', '/blog'], ['blogs', 'blog-categories', 'home']);
   }
 }
 

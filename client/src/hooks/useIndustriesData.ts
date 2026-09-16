@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Industry, industriesData as staticIndustries } from "@/data/industries";
+import { Industry } from "@/data/industries";
 import { getIndustries } from "@/lib/api/industries";
 
 export function useIndustriesData() {
-  const [industries, setIndustries] = useState<Industry[]>(staticIndustries);
-  const [isLoading, setIsLoading] = useState(false);
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchIndustries = useCallback(async () => {
     try {
       const data = await getIndustries();
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setIndustries(data);
       }
     } catch {
-      // Retain static fallback
+      // Retain state on error
     } finally {
       setIsLoading(false);
     }

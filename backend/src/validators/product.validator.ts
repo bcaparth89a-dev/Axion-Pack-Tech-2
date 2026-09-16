@@ -44,9 +44,9 @@ const productBodySchema = z.object({
   name: z.string().min(1, 'Product name is required').trim(),
   slug: z
     .string()
-    .min(1, 'Slug is required')
-    .regex(/^[a-z0-9-]+$/, 'Slug must only contain lowercase alphanumeric characters and hyphens')
-    .trim(),
+    .trim()
+    .optional()
+    .transform((val) => (val === '' ? undefined : val)),
   categoryId: z
     .string()
     .nullable()

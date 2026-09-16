@@ -1,12 +1,7 @@
 import { cache } from 'react';
 import { apiClient } from './client';
-import {
-  Industry,
-  industriesData as staticIndustries,
-  getIndustryBySlug as getStaticIndustryBySlug,
-} from '@/data/industries';
-
 export type { Industry, IndustrySolution } from '@/data/industries';
+import { Industry } from '@/data/industries';
 
 function normalizeIndustry(ind: Partial<Industry>): Industry {
   return {
@@ -36,7 +31,7 @@ function normalizeIndustry(ind: Partial<Industry>): Industry {
 }
 
 /**
- * Fetch all published industries with live API data and fallback to static dataset.
+ * Fetch all published industries with live API data from MongoDB.
  */
 export const getIndustries = cache(async (): Promise<Industry[]> => {
   try {
@@ -44,12 +39,12 @@ export const getIndustries = cache(async (): Promise<Industry[]> => {
       revalidate: 300,
       tags: ['industries', 'navbar'],
     });
-    if (data && Array.isArray(data) && data.length > 0) {
+    if (data && Array.isArray(data)) {
       return data.map(normalizeIndustry);
     }
-    return staticIndustries;
+    return [];
   } catch {
-    return staticIndustries;
+    return [];
   }
 });
 
@@ -59,7 +54,7 @@ export const getIndustries = cache(async (): Promise<Industry[]> => {
 export const getAllIndustries = getIndustries;
 
 /**
- * Fetch a single industry by slug.
+ * Fetch a single industry by slug from MongoDB.
  */
 export const getIndustryBySlug = cache(async (slug: string): Promise<Industry | undefined> => {
   try {
@@ -70,11 +65,9 @@ export const getIndustryBySlug = cache(async (slug: string): Promise<Industry | 
     if (data && data.slug) {
       return normalizeIndustry(data);
     }
-    const fallback = getStaticIndustryBySlug(slug);
-    return fallback ? normalizeIndustry(fallback) : undefined;
+    return undefined;
   } catch {
-    const fallback = getStaticIndustryBySlug(slug);
-    return fallback ? normalizeIndustry(fallback) : undefined;
+    return undefined;
   }
 });
 

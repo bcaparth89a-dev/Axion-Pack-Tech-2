@@ -49,8 +49,13 @@ export class AuthService {
     try {
       const throttleStatus = await loginThrottleService.isThrottled(normalizedEmail, clientIp);
       if (throttleStatus.isThrottled) {
+        const remainingMinutes = Math.ceil(throttleStatus.remainingSeconds / 60);
+        const timeMsg =
+          throttleStatus.remainingSeconds > 60
+            ? `${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}`
+            : `${throttleStatus.remainingSeconds} seconds`;
         throw AppError.tooManyRequests(
-          'Too many login attempts. Account temporarily throttled for 15 minutes.'
+          `Too many login attempts. Account temporarily throttled for ${timeMsg}.`
         );
       }
     } catch (err: unknown) {

@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { BlogCategory, blogCategories as staticBlogCategories } from "@/data/blogs";
+import { BlogCategory } from "@/data/blogs";
 import { getBlogCategories } from "@/lib/api/blogs";
 
 export function useBlogsData() {
-  const [categories, setCategories] = useState<BlogCategory[]>(staticBlogCategories);
-  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchCategories = useCallback(async () => {
     try {
       const data = await getBlogCategories();
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setCategories(data);
       }
     } catch {
-      // Retain static fallback
+      // Retain state on error
     } finally {
       setIsLoading(false);
     }

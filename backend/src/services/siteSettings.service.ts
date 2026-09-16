@@ -1,6 +1,7 @@
 import { SiteSettings, ISiteSettings } from '../models/SiteSettings.model.js';
 import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_TTL } from '../constants/cacheKeys.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export class SiteSettingsService {
   async getSettings(): Promise<ISiteSettings> {
@@ -27,6 +28,7 @@ export class SiteSettingsService {
       runValidators: true,
     });
     await cacheService.deleteCached(CACHE_KEYS.SITE_SETTINGS);
+    await triggerNextjsRevalidation(['/', '/contact'], ['settings', 'site-settings', 'navbar', 'home']);
     return settings as unknown as ISiteSettings;
   }
 }

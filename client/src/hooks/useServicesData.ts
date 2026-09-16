@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Service, servicesData as staticServices } from "@/data/services";
+import { Service } from "@/data/services";
 import { getServices } from "@/lib/api/services";
 
 export function useServicesData() {
-  const [services, setServices] = useState<Service[]>(staticServices);
-  const [isLoading, setIsLoading] = useState(false);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchServices = useCallback(async () => {
     try {

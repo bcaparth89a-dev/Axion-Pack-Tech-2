@@ -131,7 +131,7 @@ export default function PremiumGallery({
 
   return (
     <section id="gallery" className={`py-16 border-b border-slate-800/80 bg-[#060e18] ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container-wide">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
@@ -175,7 +175,7 @@ export default function PremiumGallery({
                       poster={item.posterUrl ? resolveMediaUrl(item.posterUrl) : undefined}
                       muted
                       playsInline
-                      preload="metadata"
+                      preload="none"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {/* Play Badge */}

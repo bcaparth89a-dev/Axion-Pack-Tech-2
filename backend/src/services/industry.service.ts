@@ -2,6 +2,7 @@ import { Industry, IIndustry } from '../models/Industry.model.js';
 import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_PATTERNS, CACHE_TTL } from '../constants/cacheKeys.js';
 import { AppError } from '../utils/appError.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export interface IndustryReorderItem {
   slug: string;
@@ -129,6 +130,7 @@ export class IndustryService {
       slug ? cacheService.deleteCached(CACHE_KEYS.INDUSTRY_DETAIL(slug)) : Promise.resolve(),
       cacheService.deleteCached(CACHE_KEYS.HOME_DATA),
     ]);
+    await triggerNextjsRevalidation(['/', '/industries'], ['industries', 'navbar', 'home']);
   }
 }
 

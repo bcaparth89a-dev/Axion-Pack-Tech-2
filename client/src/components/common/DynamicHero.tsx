@@ -262,10 +262,10 @@ export default function DynamicHero({
       <div className="absolute bottom-10 right-1/4 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
       {/* ------------------------------------------------------------- */}
-      {/* HERO CONTAINER (APPROX 16:5 WIDE PROPORTION ON DESKTOP)       */}
+      {/* HERO CONTAINER (94% WIDE CONTAINER)                           */}
       {/* ------------------------------------------------------------- */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 xl:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center min-h-[420px] lg:min-h-[480px]">
+      <div className="relative z-10 container-wide py-12 sm:py-16 lg:py-20 xl:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center min-h-[420px] lg:min-h-[480px]">
           
           {/* ========================================================= */}
           {/* LEFT COLUMN: TEXT CONTENT & ACTIONS                       */}
@@ -463,7 +463,7 @@ export default function DynamicHero({
                             muted={isVideoMuted}
                             playsInline
                             loop
-                            preload="metadata"
+                            preload={isActive ? 'metadata' : 'none'}
                             className="w-full h-full object-cover"
                           />
                           {/* Video Badge */}

@@ -54,6 +54,15 @@ export const getFeaturedProducts = async (req: Request, res: Response, next: Nex
   }
 };
 
+export const getCatalogs = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const catalogs = await productService.getAllCatalogs();
+    sendSuccess({ res, data: catalogs });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const product = await productService.createProduct(req.body);

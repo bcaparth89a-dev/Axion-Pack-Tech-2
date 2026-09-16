@@ -155,7 +155,7 @@ export default function AboutInfo({ data }: AboutInfoProps) {
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+      <div className="relative container-wide">
         <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-16">
           {/* ====================================================
               LEFT COLUMN: Premium Dark Navy Brand Card

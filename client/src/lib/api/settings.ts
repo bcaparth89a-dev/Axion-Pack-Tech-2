@@ -16,6 +16,9 @@ export interface SiteSettingsData {
 export interface CompanyStatItem {
   label: string;
   value: string;
+  prefix?: string;
+  suffix?: string;
+  description?: string;
   sortOrder: number;
 }
 
@@ -36,16 +39,6 @@ const defaultSiteSettings: SiteSettingsData = {
   maintenanceMode: false,
 };
 
-const defaultCompanyStats: CompanyStatsData = {
-  stats: [
-    { label: 'ESTABLISHED', value: '2000', sortOrder: 1 },
-    { label: 'PRODUCTS', value: '25+', sortOrder: 2 },
-    { label: 'INDUSTRIES SERVED', value: '4000+', sortOrder: 3 },
-    { label: 'PROJECTS EXECUTED', value: '2500+', sortOrder: 4 },
-  ],
-  isActive: true,
-};
-
 export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
   try {
     const data = await apiClient.get<SiteSettingsData>('/settings', {
@@ -61,13 +54,29 @@ export const getSiteSettings = cache(async (): Promise<SiteSettingsData> => {
 
 export const getCompanyStats = cache(async (): Promise<CompanyStatsData> => {
   try {
-    const data = await apiClient.get<CompanyStatsData>('/settings/stats', {
-      revalidate: 300,
-      tags: ['settings', 'company-stats'],
-    });
-    if (data && data.stats && data.stats.length > 0) return data;
-    return defaultCompanyStats;
+    // Try /pages/stats first (standard CMS route for company stats)
+    let data: CompanyStatsData | null = null;
+    try {
+      data = await apiClient.get<CompanyStatsData>('/pages/stats', {
+        revalidate: 300,
+        tags: ['settings', 'company-stats', 'pages'],
+      });
+    } catch {
+      // Fallback to /settings/stats alias
+      data = await apiClient.get<CompanyStatsData>('/settings/stats', {
+        revalidate: 300,
+        tags: ['settings', 'company-stats'],
+      });
+    }
+
+    if (data && Array.isArray(data.stats)) {
+      return {
+        stats: data.stats.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+        isActive: data.isActive !== false,
+      };
+    }
+    return { stats: [], isActive: false };
   } catch {
-    return defaultCompanyStats;
+    return { stats: [], isActive: false };
   }
 });

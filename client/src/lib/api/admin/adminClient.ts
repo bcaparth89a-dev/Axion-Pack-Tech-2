@@ -31,6 +31,7 @@ export class AdminApiError extends Error {
 }
 
 export const ADMIN_AUTH_TOKEN_KEY = 'axion_admin_token';
+export const ADMIN_REFRESH_TOKEN_KEY = 'axion_admin_refresh_token';
 export const ADMIN_USER_KEY = 'axion_admin_user';
 
 let inMemoryToken: string | null = null;
@@ -46,10 +47,18 @@ export const getStoredToken = (): string | null => {
   return inMemoryToken;
 };
 
-export const setStoredToken = (token: string): void => {
+export const getStoredRefreshToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(ADMIN_REFRESH_TOKEN_KEY);
+};
+
+export const setStoredToken = (token: string, refreshToken?: string): void => {
   inMemoryToken = token;
   if (typeof window === 'undefined') return;
   localStorage.setItem(ADMIN_AUTH_TOKEN_KEY, token);
+  if (refreshToken) {
+    localStorage.setItem(ADMIN_REFRESH_TOKEN_KEY, refreshToken);
+  }
   // Also sync cookie for server-side requests
   document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
 };
@@ -58,6 +67,7 @@ export const clearStoredAuth = (): void => {
   inMemoryToken = null;
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ADMIN_AUTH_TOKEN_KEY);
+  localStorage.removeItem(ADMIN_REFRESH_TOKEN_KEY);
   localStorage.removeItem(ADMIN_USER_KEY);
   document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
   document.cookie = 'axion_refresh_token=; path=/; max-age=0; SameSite=Lax';
@@ -70,7 +80,7 @@ interface RequestOptions extends RequestInit {
 }
 
 /**
- * Attempts to silently refresh the access token using the HTTP-only refresh cookie.
+ * Attempts to silently refresh the access token using the HTTP-only refresh cookie or header token.
  * Uses a singleton promise to avoid multiple simultaneous refresh requests (stampede protection).
  */
 async function performTokenRefresh(): Promise<boolean> {
@@ -81,11 +91,19 @@ async function performTokenRefresh(): Promise<boolean> {
   refreshPromise = (async () => {
     try {
       const baseUrl = getBaseUrl();
+      const storedRefreshToken = getStoredRefreshToken();
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (storedRefreshToken) {
+        headers['x-refresh-token'] = storedRefreshToken;
+      }
+
       const res = await fetch(`${baseUrl}/auth/refresh`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
+        body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
         credentials: 'include',
       });
 
@@ -96,7 +114,7 @@ async function performTokenRefresh(): Promise<boolean> {
 
       const json = await res.json();
       if (json.data?.token) {
-        setStoredToken(json.data.token);
+        setStoredToken(json.data.token, json.data.refreshToken);
         if (json.data.user && typeof window !== 'undefined') {
           localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(json.data.user));
         }
@@ -169,6 +187,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       endpoint.includes('/auth/logout');
 
     if (res.status === 401 && !options._retry && !isAuthEndpoint && typeof window !== 'undefined') {
+      const hadPreviousSession = !!(getStoredToken() || getStoredRefreshToken());
       const refreshed = await performTokenRefresh();
       if (refreshed) {
         // Retry the original request with the fresh token
@@ -181,9 +200,9 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
       // Refresh genuinely failed -> redirect to login safely
       clearStoredAuth();
-      if (!window.location.pathname.startsWith('/admin/login')) {
+      if (!window.location.pathname.startsWith('/admin/login') && window.location.pathname.startsWith('/admin')) {
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.href = '/admin/login?sessionExpired=1';
+        window.location.href = hadPreviousSession ? '/admin/login?sessionExpired=1' : '/admin/login';
       }
     }
 

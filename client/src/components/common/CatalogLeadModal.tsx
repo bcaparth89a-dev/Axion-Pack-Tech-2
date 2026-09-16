@@ -419,6 +419,7 @@ export default function CatalogLeadModal({
                 </label>
                 <HumanVerification
                   ref={turnstileRef}
+                  action="catalog_lead"
                   onVerify={(token) => {
                     setTurnstileToken(token);
                     if (errors.verification) {
@@ -431,11 +432,9 @@ export default function CatalogLeadModal({
                   }}
                   onExpire={() => {
                     setTurnstileToken('');
-                    turnstileRef.current?.reset();
                   }}
                   onError={() => {
                     setTurnstileToken('');
-                    turnstileRef.current?.reset();
                   }}
                 />
                 {errors.verification && (

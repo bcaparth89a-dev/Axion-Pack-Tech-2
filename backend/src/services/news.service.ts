@@ -5,6 +5,7 @@ import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_PATTERNS, CACHE_TTL } from '../constants/cacheKeys.js';
 import { getPagination, buildPaginatedResponse, PaginatedResponse } from '../utils/pagination.js';
 import { AppError } from '../utils/appError.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export interface NewsQueryParams {
   page?: string | number;
@@ -306,7 +307,7 @@ export class NewsService {
     return updated as unknown as INews[];
   }
 
-  private async invalidateCache(categorySlug?: string, slug?: string): Promise<void> {
+  public async invalidateCache(categorySlug?: string, slug?: string): Promise<void> {
     await Promise.all([
       cacheService.deleteByPattern(CACHE_PATTERNS.ALL_NEWS),
       categorySlug && slug
@@ -316,6 +317,7 @@ export class NewsService {
       cacheService.deleteCached(CACHE_KEYS.NEWS_CATEGORIES),
       cacheService.deleteCached(CACHE_KEYS.HOME_DATA),
     ]);
+    await triggerNextjsRevalidation(['/', '/news'], ['news', 'news-categories', 'home']);
   }
 }
 

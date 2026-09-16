@@ -1,19 +1,23 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getCareerCounts } from "@/data/careers";
-
 interface CareerHeroProps {
   title?: string;
   subtitle?: string;
   badge?: string;
+  counts?: {
+    all: number;
+    jobs: number;
+    internships: number;
+    apprenticeships: number;
+  };
 }
 
 export default function CareerHero({
   title = "Build Your Career. Engineer the Future.",
   subtitle = "At Axion PackTech, we believe great engineering starts with great people. Join our team and become part of innovative packaging, automation, and industrial technology solutions.",
   badge = "CAREERS AT AXION PACKTECH",
+  counts = { all: 0, jobs: 0, internships: 0, apprenticeships: 0 },
 }: CareerHeroProps) {
-  const counts = getCareerCounts();
 
   return (
     <section className="relative w-full bg-[#061527] text-white overflow-hidden border-b border-sky-900/40">

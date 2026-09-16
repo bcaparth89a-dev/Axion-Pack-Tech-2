@@ -37,19 +37,36 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const initializeAuth = async () => {
-      // 1. Check cached user in localStorage for fast initial state
-      if (typeof window !== 'undefined') {
-        const cachedUserStr = localStorage.getItem(ADMIN_USER_KEY);
-        if (cachedUserStr) {
-          try {
-            const parsed = JSON.parse(cachedUserStr) as AdminUser;
-            if (parsed.role === 'admin' && isMounted) {
-              setUser(parsed);
-              setToken(getStoredToken());
-            }
-          } catch {
-            localStorage.removeItem(ADMIN_USER_KEY);
+      if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+      }
+
+      const storedToken = getStoredToken();
+      const storedRefreshToken = localStorage.getItem('axion_admin_refresh_token');
+      const cachedUserStr = localStorage.getItem(ADMIN_USER_KEY);
+
+      // If absolutely no previous session data exists, finish initialization immediately
+      // without firing useless /auth/me or failing silent refresh
+      if (!storedToken && !storedRefreshToken && !cachedUserStr) {
+        if (isMounted) {
+          setUser(null);
+          setToken(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // 1. Fast optimistic state from cached user while validation runs
+      if (cachedUserStr) {
+        try {
+          const parsed = JSON.parse(cachedUserStr) as AdminUser;
+          if (parsed.role === 'admin' && isMounted) {
+            setUser(parsed);
+            setToken(storedToken);
           }
+        } catch {
+          localStorage.removeItem(ADMIN_USER_KEY);
         }
       }
 
@@ -62,9 +79,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           setUser(profile);
           const currentToken = getStoredToken();
           setToken(currentToken);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(profile));
-          }
+          localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(profile));
 
           // If valid session already exists on /admin/login, redirect to /admin dashboard
           if (window.location.pathname === '/admin/login') {

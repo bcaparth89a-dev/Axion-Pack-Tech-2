@@ -133,6 +133,8 @@ export interface AdminMedia {
   name: string;
   key: string;
   url: string;
+  publicUrl?: string;
+  status?: string;
   type?: 'image' | 'document' | 'video' | 'other';
   mimeType: string;
   size: number;

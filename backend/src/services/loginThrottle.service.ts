@@ -20,23 +20,23 @@ class LoginThrottleService {
 
   /**
    * Maximum failed attempts before temporary account lockout.
-   * Defaults: 5 in production, 15 in development.
+   * Defaults: 5 in production, 30 in development (or explicit AUTH_MAX_FAILED_ATTEMPTS).
    */
   getMaxFailedAttempts(): number {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const envVal = process.env.AUTH_MAX_FAILED_ATTEMPTS || process.env.AUTH_RATE_LIMIT_MAX_REQUESTS;
+    const envVal = process.env.DEV_AUTH_MAX_FAILED_ATTEMPTS || process.env.AUTH_MAX_FAILED_ATTEMPTS;
     if (envVal) {
       const parsed = parseInt(envVal, 10);
       if (!isNaN(parsed) && parsed > 0) {
         return parsed;
       }
     }
-    return isProduction ? 5 : 15;
+    const isProduction = process.env.NODE_ENV === 'production';
+    return isProduction ? 5 : 30;
   }
 
   /**
    * Lockout duration in seconds.
-   * Default: 900 seconds (15 minutes).
+   * Defaults: 900 seconds (15 minutes) in production, 30 seconds in development (or explicit AUTH_LOCKOUT_DURATION_SECONDS).
    */
   getLockoutDurationSeconds(): number {
     const envVal = process.env.AUTH_LOCKOUT_DURATION_SECONDS;
@@ -46,7 +46,8 @@ class LoginThrottleService {
         return parsed;
       }
     }
-    return 15 * 60; // 900 seconds
+    const isProduction = process.env.NODE_ENV === 'production';
+    return isProduction ? 15 * 60 : 30;
   }
 
   normalizeEmail(email: string): string {
@@ -188,6 +189,24 @@ class LoginThrottleService {
    */
   async resetDevIpThrottle(): Promise<void> {
     this.inMemoryAccountStore.clear();
+  }
+
+  /**
+   * Clears all login throttle entries in memory and in Redis (safe development helper).
+   */
+  async clearAllThrottle(): Promise<void> {
+    this.inMemoryAccountStore.clear();
+    if (isRedisReady()) {
+      try {
+        const client = getRedisClient();
+        const keys = await client.keys(`${this.accountPrefix}*`);
+        if (keys.length > 0) {
+          await client.del(...keys);
+        }
+      } catch (error) {
+        logger.warn('Redis error during clearAllThrottle:', error);
+      }
+    }
   }
 }
 

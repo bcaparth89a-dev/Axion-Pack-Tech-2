@@ -387,6 +387,7 @@ export default function ContactForm() {
           </label>
           <HumanVerification
             ref={turnstileRef}
+            action="contact_submission"
             onVerify={(token) => {
               setTurnstileToken(token);
               if (errors.verification) {
@@ -399,11 +400,9 @@ export default function ContactForm() {
             }}
             onExpire={() => {
               setTurnstileToken("");
-              turnstileRef.current?.reset();
             }}
             onError={() => {
               setTurnstileToken("");
-              turnstileRef.current?.reset();
             }}
           />
           {errors.verification && (

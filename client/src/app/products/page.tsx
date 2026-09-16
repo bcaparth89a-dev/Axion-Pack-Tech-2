@@ -6,6 +6,7 @@ import CategoryMainHero from '@/components/products/CategoryMainHero';
 import { getCategoryTree, getProducts } from '@/lib/api/products';
 import { getCategoryHero } from '@/lib/api/pages';
 import CmsImage from '@/components/common/CmsImage';
+import CompactCatalogCard from '@/components/products/CompactCatalogCard';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 
 export const revalidate = 300;
@@ -23,8 +24,9 @@ export default async function ProductsOverviewPage() {
     getCategoryHero(),
   ]);
 
+  const rootCategories = (categoriesTree || []).filter((c) => !c.type || c.type === 'category');
   const standaloneProducts = standaloneResult?.items || [];
-  const hasCategories = Array.isArray(categoriesTree) && categoriesTree.length > 0;
+  const hasCategories = Array.isArray(rootCategories) && rootCategories.length > 0;
   const hasStandalone = Array.isArray(standaloneProducts) && standaloneProducts.length > 0;
 
   return (
@@ -68,7 +70,7 @@ export default async function ProductsOverviewPage() {
               {/* Category Showcase Stream */}
               {hasCategories && (
                 <div className="divide-y divide-slate-800/60">
-                  {categoriesTree.map((cat, idx) => {
+                  {rootCategories.map((cat, idx) => {
                     const catImage = resolveMediaUrl(
                       cat.media?.heroImage ||
                       cat.media?.image ||
@@ -250,38 +252,21 @@ export default async function ProductsOverviewPage() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
                       {standaloneProducts.map((prod) => (
-                        <Link
+                        <CompactCatalogCard
                           key={prod._id}
                           href={`/products/${prod.slug}`}
-                          className="group p-6 rounded-2xl bg-slate-900/80 border border-slate-800/90 hover:border-sky-400/60 transition-all duration-300 flex flex-col justify-between hover:shadow-[0_12px_35px_-10px_rgba(56,189,248,0.2)] hover:-translate-y-1"
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="px-2.5 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px] font-extrabold uppercase tracking-wider">
-                                Standalone Unit
-                              </span>
-                              {prod.modelCount !== undefined && prod.modelCount > 0 && (
-                                <span className="text-xs text-amber-400 font-semibold">
-                                  {prod.modelCount} Models
-                                </span>
-                              )}
-                            </div>
-                            <h3 className="text-lg font-bold text-white group-hover:text-sky-300 transition-colors">
-                              {prod.name}
-                            </h3>
-                            {prod.shortDescription && (
-                              <p className="mt-2 text-xs text-slate-400 line-clamp-2 leading-relaxed font-normal">
-                                {prod.shortDescription}
-                              </p>
-                            )}
-                          </div>
-                          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-semibold text-slate-300">
-                            <span>View Specifications</span>
-                            <span className="text-sky-400 group-hover:translate-x-1 transition-transform">→</span>
-                          </div>
-                        </Link>
+                          name={prod.name}
+                          type="product"
+                          badge="STANDALONE"
+                          image={prod.media?.image || prod.media?.heroImage}
+                          shortDescription={prod.shortDescription}
+                          modelCount={prod.modelCount}
+                          isFeatured={prod.isFeatured}
+                          accentColor="sky"
+                          actionLabel="View Machinery"
+                        />
                       ))}
                     </div>
                   </div>

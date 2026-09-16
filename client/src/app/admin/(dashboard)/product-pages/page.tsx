@@ -347,7 +347,45 @@ export default function AdminProductPages() {
     };
   }, [flatItems]);
 
-  // Filtered & Searched tree list
+  // Filter helper functions
+  const nodeMatchesFilterTab = useCallback((node: { type: string; isActive: boolean }, tab: FilterTab): boolean => {
+    if (tab === 'all') return true;
+    const rawType = node.type;
+    const normalizedType: CatalogType =
+      rawType === 'model' ? 'model' : rawType === 'product' ? 'product' : 'category';
+
+    if (tab === 'categories') return normalizedType === 'category';
+    if (tab === 'products') return normalizedType === 'product';
+    if (tab === 'models') return normalizedType === 'model';
+    if (tab === 'published') return node.isActive !== false;
+    if (tab === 'draft') return !node.isActive;
+    return true;
+  }, []);
+
+  const nodeMatchesSearchQuery = useCallback((node: { name: string; slug: string; modelNumber?: string; type: string }, query: string): boolean => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase().trim();
+    return (
+      node.name.toLowerCase().includes(q) ||
+      node.slug.toLowerCase().includes(q) ||
+      (node.modelNumber ? node.modelNumber.toLowerCase().includes(q) : false) ||
+      node.type.toLowerCase().includes(q)
+    );
+  }, []);
+
+  const nodeOrDescendantMatchesFilter = useCallback(
+    (node: CatalogHierarchyNode, tab: FilterTab, query: string): boolean => {
+      const directMatch = nodeMatchesFilterTab(node, tab) && nodeMatchesSearchQuery(node, query);
+      if (directMatch) return true;
+      if (node.children && node.children.length > 0) {
+        return node.children.some((child) => nodeOrDescendantMatchesFilter(child, tab, query));
+      }
+      return false;
+    },
+    [nodeMatchesFilterTab, nodeMatchesSearchQuery]
+  );
+
+  // Filtered & Searched tree list for metric cards
   const filteredItems = useMemo(() => {
     let items = flatItems;
 
@@ -377,24 +415,27 @@ export default function AdminProductPages() {
     return items;
   }, [flatItems, filterTab, searchQuery]);
 
-  // Auto-expand search matches
+  // Auto-expand search & filter matches
   useEffect(() => {
-    if (searchQuery.trim() && tree.length > 0) {
-      const q = searchQuery.toLowerCase().trim();
-      const matchedIds = flatItems
-        .filter((i) => i.name.toLowerCase().includes(q) || (i.modelNumber && i.modelNumber.toLowerCase().includes(q)))
-        .map((i) => i._id);
-
+    if ((searchQuery.trim() || filterTab !== 'all') && tree.length > 0) {
       const toExpand = new Set<string>(expandedIds);
-      matchedIds.forEach((id) => {
-        const ancestors = findAncestorIds(tree, id);
-        if (ancestors) {
-          ancestors.forEach((aId) => toExpand.add(aId));
+      const markAncestors = (nodes: CatalogHierarchyNode[], ancestors: string[] = []) => {
+        for (const n of nodes) {
+          const directMatch =
+            nodeMatchesFilterTab(n, filterTab) &&
+            nodeMatchesSearchQuery(n, searchQuery);
+          if (directMatch) {
+            ancestors.forEach((a) => toExpand.add(a));
+          }
+          if (n.children && n.children.length > 0) {
+            markAncestors(n.children, [...ancestors, n._id]);
+          }
         }
-      });
+      };
+      markAncestors(tree);
       setExpandedIds(toExpand);
     }
-  }, [searchQuery, flatItems, tree, expandedIds]);
+  }, [searchQuery, filterTab, tree, nodeMatchesFilterTab, nodeMatchesSearchQuery]);
 
   // --------------------------------------------------------------------
   // Select Entity for Editing
@@ -500,6 +541,12 @@ export default function AdminProductPages() {
 
     try {
       let createdId = '';
+      const resolvedParentType = createParentId
+        ? (() => {
+            const pNode = findNodeById(tree, createParentId);
+            return pNode ? (pNode.type === 'model' ? 'model' : pNode.type === 'product' ? 'product' : 'category') : null;
+          })()
+        : null;
 
       if (createType === 'category') {
         const cat = await createCategoryAdmin({
@@ -508,6 +555,7 @@ export default function AdminProductPages() {
           catalogProductId: selectedProductId || undefined,
           parentCategoryId: createParentId || null,
           parentId: createParentId || null,
+          parentType: resolvedParentType,
           isActive: createStatus === 'published',
           displayOrder: 99,
         });
@@ -518,6 +566,7 @@ export default function AdminProductPages() {
           slug,
           categoryId: createParentId || null,
           parentId: createParentId || null,
+          parentType: resolvedParentType,
           catalogProductId: selectedProductId || undefined,
           isActive: createStatus === 'published',
           displayOrder: 99,
@@ -530,6 +579,7 @@ export default function AdminProductPages() {
           slug,
           productId: createParentId || null,
           parentId: createParentId || null,
+          parentType: resolvedParentType,
           catalogProductId: selectedProductId || undefined,
           isActive: createStatus === 'published',
           displayOrder: 99,
@@ -576,6 +626,12 @@ export default function AdminProductPages() {
     setIsSaving(true);
     try {
       const { _id, type } = editingForm;
+      const resolvedParentType = editingForm.parentId
+        ? (() => {
+            const pNode = findNodeById(tree, editingForm.parentId);
+            return pNode ? (pNode.type === 'model' ? 'model' : pNode.type === 'product' ? 'product' : 'category') : null;
+          })()
+        : null;
 
       if (type === 'category') {
         await updateCategoryAdmin(_id, {
@@ -583,6 +639,7 @@ export default function AdminProductPages() {
           slug: editingForm.slug || generateSlug(editingForm.name),
           parentCategoryId: editingForm.parentId || null,
           parentId: editingForm.parentId || null,
+          parentType: resolvedParentType,
           shortDescription: editingForm.shortDescription,
           description: editingForm.description,
           media: {
@@ -601,6 +658,7 @@ export default function AdminProductPages() {
           slug: editingForm.slug || generateSlug(editingForm.name),
           categoryId: editingForm.parentId || null,
           parentId: editingForm.parentId || null,
+          parentType: resolvedParentType,
           shortDescription: editingForm.shortDescription,
           description: editingForm.description,
           media: {
@@ -622,6 +680,7 @@ export default function AdminProductPages() {
           slug: editingForm.slug || generateSlug(editingForm.name),
           productId: editingForm.parentId || null,
           parentId: editingForm.parentId || null,
+          parentType: resolvedParentType,
           shortDescription: editingForm.shortDescription,
           description: editingForm.description,
           media: {
@@ -682,20 +741,30 @@ export default function AdminProductPages() {
     setIsMoving(true);
     try {
       const rawType = movingNode.type;
+      const resolvedParentType = moveTargetParentId
+        ? (() => {
+            const pNode = findNodeById(tree, moveTargetParentId);
+            return pNode ? (pNode.type === 'model' ? 'model' : pNode.type === 'product' ? 'product' : 'category') : null;
+          })()
+        : null;
+
       if (rawType === 'mainCategory' || rawType === 'subCategory') {
         await updateCategoryAdmin(movingNode._id, {
           parentCategoryId: moveTargetParentId || null,
           parentId: moveTargetParentId || null,
+          parentType: resolvedParentType,
         });
       } else if (rawType === 'product') {
         await updateProductAdmin(movingNode._id, {
           categoryId: moveTargetParentId || null,
           parentId: moveTargetParentId || null,
+          parentType: resolvedParentType,
         });
       } else if (rawType === 'model') {
         await updateModelAdmin(movingNode._id, {
           productId: moveTargetParentId || null,
           parentId: moveTargetParentId || null,
+          parentType: resolvedParentType,
         });
       }
 
@@ -721,11 +790,18 @@ export default function AdminProductPages() {
     (targetNodeId: string) => {
       const node = findNodeById(tree, targetNodeId);
       if (!node) return { siblings: [] as CatalogHierarchyNode[], parentId: null as string | null };
-      if (!node.parentId || node.parentId === selectedProductId) {
+
+      const isRootInTree = tree.some((t) => t._id === targetNodeId);
+      if (isRootInTree || !node.parentId || node.parentId === selectedProductId) {
         return { siblings: tree, parentId: null };
       }
+
       const parent = findNodeById(tree, node.parentId);
-      return { siblings: parent?.children || [], parentId: node.parentId };
+      if (parent && parent.children) {
+        return { siblings: parent.children, parentId: node.parentId };
+      }
+
+      return { siblings: tree, parentId: null };
     },
     [tree, selectedProductId]
   );
@@ -745,20 +821,24 @@ export default function AdminProductPages() {
     const [moved] = reordered.splice(currentIndex, 1);
     reordered.splice(targetIndex, 0, moved);
 
-    const orders = reordered.map((item, idx) => ({
-      id: item._id,
-      displayOrder: idx + 1,
-    }));
+    const categoryOrders = reordered
+      .filter((i) => i.type === 'mainCategory' || i.type === 'subCategory')
+      .map((item, idx) => ({ id: item._id, displayOrder: idx + 1 }));
+
+    const productOrders = reordered
+      .filter((i) => i.type === 'product')
+      .map((item, idx) => ({ id: item._id, displayOrder: idx + 1 }));
+
+    const modelOrders = reordered
+      .filter((i) => i.type === 'model')
+      .map((item, idx) => ({ id: item._id, displayOrder: idx + 1 }));
 
     try {
-      const rawType = node.type;
-      if (rawType === 'mainCategory' || rawType === 'subCategory') {
-        await reorderCategoriesAdmin(orders);
-      } else if (rawType === 'product') {
-        await reorderProductsAdmin(orders);
-      } else if (rawType === 'model') {
-        await reorderModelsAdmin(orders);
-      }
+      const promises: Promise<unknown>[] = [];
+      if (categoryOrders.length > 0) promises.push(reorderCategoriesAdmin(categoryOrders));
+      if (productOrders.length > 0) promises.push(reorderProductsAdmin(productOrders));
+      if (modelOrders.length > 0) promises.push(reorderModelsAdmin(modelOrders));
+      await Promise.all(promises);
 
       showToast(`✓ Order updated for "${node.name}"`, 'success');
       if (selectedProductId) {
@@ -1018,20 +1098,24 @@ export default function AdminProductPages() {
     }
     reordered.splice(targetIndex, 0, moved);
 
-    const orders = reordered.map((item, idx) => ({
-      id: item._id,
-      displayOrder: idx + 1,
-    }));
+    const categoryOrders = reordered
+      .filter((i) => i.type === 'mainCategory' || i.type === 'subCategory')
+      .map((item, idx) => ({ id: item._id, displayOrder: idx + 1 }));
+
+    const productOrders = reordered
+      .filter((i) => i.type === 'product')
+      .map((item, idx) => ({ id: item._id, displayOrder: idx + 1 }));
+
+    const modelOrders = reordered
+      .filter((i) => i.type === 'model')
+      .map((item, idx) => ({ id: item._id, displayOrder: idx + 1 }));
 
     try {
-      const rawType = sourceNode.type;
-      if (rawType === 'mainCategory' || rawType === 'subCategory') {
-        await reorderCategoriesAdmin(orders);
-      } else if (rawType === 'product') {
-        await reorderProductsAdmin(orders);
-      } else if (rawType === 'model') {
-        await reorderModelsAdmin(orders);
-      }
+      const promises: Promise<unknown>[] = [];
+      if (categoryOrders.length > 0) promises.push(reorderCategoriesAdmin(categoryOrders));
+      if (productOrders.length > 0) promises.push(reorderProductsAdmin(productOrders));
+      if (modelOrders.length > 0) promises.push(reorderModelsAdmin(modelOrders));
+      await Promise.all(promises);
 
       showToast(`✓ Reordered "${sourceNode.name}"`, 'success');
       if (selectedProductId) {
@@ -1094,9 +1178,17 @@ export default function AdminProductPages() {
     const normalizedType: CatalogType =
       rawType === 'model' ? 'model' : rawType === 'product' ? 'product' : 'category';
 
-    const hasChildren = node.children && node.children.length > 0;
+    const hasChildren = Boolean(node.children && node.children.length > 0);
     const isExpanded = expandedIds.has(node._id);
     const isSelected = selectedNodeId === node._id;
+
+    // Filter visibility check (supports recursive matches for nested products/models)
+    const isVisibleInTree = nodeOrDescendantMatchesFilter(node, filterTab, searchQuery);
+    if (!isVisibleInTree) {
+      return null;
+    }
+
+    const isDirectMatch = nodeMatchesFilterTab(node, filterTab) && nodeMatchesSearchQuery(node, searchQuery);
 
     const isDropBefore = dragOverInfo?.targetId === node._id && dragOverInfo.position === 'before';
     const isDropAfter = dragOverInfo?.targetId === node._id && dragOverInfo.position === 'after';
@@ -1106,35 +1198,6 @@ export default function AdminProductPages() {
     const siblingIndex = siblings.findIndex((s) => s._id === node._id);
     const isFirstSibling = siblingIndex === 0;
     const isLastSibling = siblingIndex === siblings.length - 1;
-
-    let matchesFilter = true;
-    if (filterTab === 'categories' && normalizedType !== 'category') matchesFilter = false;
-    if (filterTab === 'products' && normalizedType !== 'product') matchesFilter = false;
-    if (filterTab === 'models' && normalizedType !== 'model') matchesFilter = false;
-    if (filterTab === 'published' && !node.isActive) matchesFilter = false;
-    if (filterTab === 'draft' && node.isActive) matchesFilter = false;
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      const directMatch =
-        node.name.toLowerCase().includes(q) ||
-        node.slug.toLowerCase().includes(q) ||
-        (node.modelNumber && node.modelNumber.toLowerCase().includes(q));
-
-      const hasMatchingDescendant = flatItems.some(
-        (i) =>
-          (i.parentId === node._id || i.path.includes(node.slug)) &&
-          (i.name.toLowerCase().includes(q) || (i.modelNumber && i.modelNumber.toLowerCase().includes(q)))
-      );
-
-      if (!directMatch && !hasMatchingDescendant) {
-        matchesFilter = false;
-      }
-    }
-
-    if (!matchesFilter && !searchQuery.trim()) {
-      return null;
-    }
 
     const badgeConfig = {
       category: {
@@ -1178,10 +1241,14 @@ export default function AdminProductPages() {
               ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400 text-amber-200'
               : isDropBefore || isDropAfter
               ? 'bg-sky-950/80 border-sky-400 text-sky-100'
+              : !isDirectMatch && filterTab !== 'all'
+              ? 'bg-[#061424]/50 border-slate-800/50 hover:bg-[#0c223c] text-slate-400 opacity-80'
+              : depth === 0
+              ? 'bg-[#091e36]/90 border-slate-700 hover:bg-[#0c2748] hover:border-sky-500/40 text-slate-200 shadow-sm'
               : 'bg-[#08182b]/70 border-slate-800/80 hover:bg-[#0c223c] hover:border-slate-700 text-slate-300'
           }`}
         >
-          {/* Left: Drag Handle + Expand Chevron + Status Dot + Image/Icon + Name + Type Badge */}
+          {/* Left: Drag Handle + Expand Chevron / Leaf Dot + Status Dot + Image/Icon + Name + Type Badge */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
             {/* Drag Handle */}
             <div
@@ -1191,26 +1258,30 @@ export default function AdminProductPages() {
               ⋮⋮
             </div>
 
-            {/* Chevron */}
-            <button
-              type="button"
-              onClick={(e) => toggleExpand(node._id, e)}
-              className={`w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-700/60 transition-transform ${
-                !hasChildren ? 'opacity-0 pointer-events-none' : ''
-              }`}
-              aria-label={isExpanded ? 'Collapse branch' : 'Expand branch'}
-            >
-              <svg
-                className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                  isExpanded ? 'rotate-90 text-sky-400' : ''
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            {/* Chevron or Leaf Indicator (Only show chevron if entity actually has children) */}
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={(e) => toggleExpand(node._id, e)}
+                className="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-slate-700/60 transition-transform flex-shrink-0"
+                aria-label={isExpanded ? 'Collapse branch' : 'Expand branch'}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+                <svg
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                    isExpanded ? 'rotate-90 text-sky-400' : ''
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            ) : (
+              <div className="w-5 h-5 flex items-center justify-center flex-shrink-0" title="Leaf entity (No children)">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-700/60" />
+              </div>
+            )}
 
             {/* Status Dot */}
             <span
@@ -1655,9 +1726,11 @@ export default function AdminProductPages() {
                 Visual Hierarchy Tree
               </h2>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
-              {filteredItems.length} node{filteredItems.length === 1 ? '' : 's'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-lg border border-slate-800">
+                {filteredItems.length} node{filteredItems.length === 1 ? '' : 's'}
+              </span>
+            </div>
           </div>
 
           {/* Hierarchy Tree Node List */}
@@ -1673,7 +1746,7 @@ export default function AdminProductPages() {
               </div>
               <div>
                 <p className="font-bold text-slate-200 text-sm">Catalog is Currently Empty</p>
-                <p className="text-slate-400 mt-1">Create your first root category to start organizing machinery.</p>
+                <p className="text-slate-400 mt-1">Create your first root category or product to start organizing equipment.</p>
               </div>
               <button
                 type="button"
@@ -1684,8 +1757,24 @@ export default function AdminProductPages() {
               </button>
             </div>
           ) : (
-            <div className="space-y-0.5 max-h-[800px] overflow-y-auto pr-1 custom-scrollbar">
-              {tree.map((rootNode) => renderTreeNode(rootNode, 0))}
+            <div className="space-y-2 max-h-[800px] overflow-y-auto pr-1 custom-scrollbar">
+              {/* Root Catalog Banner */}
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/80 text-[10px] font-mono text-slate-400">
+                <div className="flex items-center gap-2">
+                  <span className="text-sky-400 font-bold tracking-wider">ROOT CATALOG</span>
+                  <span className="text-slate-500">
+                    ({tree.length} Root Item{tree.length === 1 ? '' : 's'})
+                  </span>
+                </div>
+                <span className="text-slate-500">
+                  Total: {flatItems.length} Nodes
+                </span>
+              </div>
+
+              {/* Hierarchy Tree Nodes */}
+              <div className="space-y-0.5">
+                {tree.map((rootNode) => renderTreeNode(rootNode, 0))}
+              </div>
             </div>
           )}
         </div>

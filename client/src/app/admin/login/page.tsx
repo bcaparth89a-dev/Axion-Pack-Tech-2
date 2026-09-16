@@ -21,15 +21,27 @@ function LoginForm() {
 
   useEffect(() => {
     if (searchParams.get('sessionExpired')) {
-      setError('Your administrative session has expired. Please sign in again.');
+      setError('Your admin session has expired. Please sign in again.');
     } else if (searchParams.get('error') === 'forbidden') {
       setError('Access denied. Administrator privileges are strictly required.');
     }
   }, [searchParams]);
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (error) setError(null);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (isSubmitting) return;
+
+    if (!email.trim() || !password) {
       setError('Please enter both email and password.');
       return;
     }
@@ -38,7 +50,7 @@ function LoginForm() {
     setError(null);
 
     try {
-      await login(email, password);
+      await login(email.trim(), password);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Invalid credentials. Please verify and try again.';
       setError(msg);
@@ -91,10 +103,11 @@ function LoginForm() {
           <input
             type="email"
             required
+            disabled={isSubmitting}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
             placeholder="admin@axionpacktech.com"
-            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
+            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors disabled:opacity-60"
           />
         </div>
 
@@ -105,10 +118,11 @@ function LoginForm() {
           <input
             type="password"
             required
+            disabled={isSubmitting}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handlePasswordChange}
             placeholder="••••••••••••"
-            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
+            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors disabled:opacity-60"
           />
         </div>
 

@@ -319,53 +319,46 @@ export const getAboutPage = cache(async (): Promise<AboutPageData> => {
         mediaSlider: {
           ...staticAboutPageData.mediaSlider,
           ...data.mediaSlider,
-          items:
-            data.mediaSlider?.items !== undefined
-              ? data.mediaSlider.items
-              : staticAboutPageData.mediaSlider?.items,
+          items: Array.isArray(data.mediaSlider?.items)
+            ? data.mediaSlider.items
+            : staticAboutPageData.mediaSlider?.items || [],
         },
         aboutInfo: {
           ...staticAboutPageData.aboutInfo,
           ...data.aboutInfo,
-          paragraphs:
-            data.aboutInfo?.paragraphs !== undefined
-              ? data.aboutInfo.paragraphs
-              : staticAboutPageData.aboutInfo?.paragraphs,
-          stats:
-            data.aboutInfo?.stats !== undefined
-              ? data.aboutInfo.stats
-              : staticAboutPageData.aboutInfo?.stats,
-          capabilities:
-            data.aboutInfo?.capabilities !== undefined
-              ? data.aboutInfo.capabilities
-              : staticAboutPageData.aboutInfo?.capabilities,
+          paragraphs: Array.isArray(data.aboutInfo?.paragraphs)
+            ? data.aboutInfo.paragraphs
+            : staticAboutPageData.aboutInfo?.paragraphs || [],
+          stats: Array.isArray(data.aboutInfo?.stats)
+            ? data.aboutInfo.stats
+            : staticAboutPageData.aboutInfo?.stats || [],
+          capabilities: Array.isArray(data.aboutInfo?.capabilities)
+            ? data.aboutInfo.capabilities
+            : staticAboutPageData.aboutInfo?.capabilities || [],
         },
         whyChooseUsSection: {
           ...staticAboutPageData.whyChooseUsSection,
           ...data.whyChooseUsSection,
-          items:
-            data.whyChooseUsSection?.items !== undefined
-              ? data.whyChooseUsSection.items
-              : staticAboutPageData.whyChooseUsSection?.items,
+          items: Array.isArray(data.whyChooseUsSection?.items)
+            ? data.whyChooseUsSection.items
+            : staticAboutPageData.whyChooseUsSection?.items || [],
         },
         visionMission: {
           ...staticAboutPageData.visionMission,
           ...data.visionMission,
-          coreValues:
-            data.visionMission?.coreValues !== undefined
-              ? data.visionMission.coreValues
-              : staticAboutPageData.visionMission?.coreValues,
+          coreValues: Array.isArray(data.visionMission?.coreValues)
+            ? data.visionMission.coreValues
+            : staticAboutPageData.visionMission?.coreValues || [],
         },
         responsibilitiesSection: {
           ...staticAboutPageData.responsibilitiesSection,
           ...data.responsibilitiesSection,
-          points:
-            data.responsibilitiesSection?.points !== undefined
-              ? data.responsibilitiesSection.points
-              : staticAboutPageData.responsibilitiesSection?.points,
+          points: Array.isArray(data.responsibilitiesSection?.points)
+            ? data.responsibilitiesSection.points
+            : staticAboutPageData.responsibilitiesSection?.points || [],
         },
-        sections: { ...staticAboutPageData.sections, ...data.sections },
-        seo: { ...staticAboutPageData.seo, ...data.seo },
+        sections: { ...staticAboutPageData.sections, ...(data.sections || {}) },
+        seo: { ...staticAboutPageData.seo, ...(data.seo || {}) },
       };
     }
     return staticAboutPageData;

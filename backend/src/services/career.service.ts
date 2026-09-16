@@ -14,6 +14,7 @@ import { getPagination, buildPaginatedResponse, PaginatedResponse } from '../uti
 import { AppError } from '../utils/appError.js';
 import { emailService, extractRecipientEmail, isValidEmail } from './email.service.js';
 import { logger } from '../utils/logger.js';
+import { triggerNextjsRevalidation } from '../utils/revalidate.js';
 
 export interface CareerQueryParams {
   type?: string;
@@ -425,12 +426,13 @@ export class CareerService {
     }
   }
 
-  private async invalidateCache(slug?: string): Promise<void> {
+  public async invalidateCache(slug?: string): Promise<void> {
     await Promise.all([
       cacheService.deleteByPattern(CACHE_PATTERNS.ALL_CAREERS),
       slug ? cacheService.deleteCached(CACHE_KEYS.CAREER_DETAIL(slug)) : Promise.resolve(),
       cacheService.deleteCached(CACHE_KEYS.HOME_DATA),
     ]);
+    await triggerNextjsRevalidation(['/', '/careers'], ['careers', 'home']);
   }
 }
 

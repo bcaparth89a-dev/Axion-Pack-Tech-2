@@ -37,19 +37,13 @@ const promptQuestion = (query: string): Promise<string> => {
 };
 
 export const resetLoginThrottle = async (
-  email: string
+  email?: string
 ): Promise<{ email: string; success: boolean }> => {
   if (process.env.NODE_ENV?.trim() === 'production') {
     throw new Error('reset-login-throttle is disabled in production environments.');
   }
 
-  const normalizedEmail = (email || '').trim().toLowerCase();
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
-    throw new Error(`Invalid email address format: "${email}".`);
-  }
-
-  // Ensure Redis client is connected
+  // Ensure Redis client is initialized
   getRedisClient();
 
   // Wait a moment if Redis is connecting
@@ -59,10 +53,24 @@ export const resetLoginThrottle = async (
     retries--;
   }
 
+  if (!email || email === 'all' || email === '--all') {
+    await loginThrottleService.clearAllThrottle();
+    return {
+      email: 'all accounts & IP throttles',
+      success: true,
+    };
+  }
+
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
+    throw new Error(`Invalid email address format: "${email}".`);
+  }
+
   // Reset target account throttle
   await loginThrottleService.resetAccountThrottle(normalizedEmail);
 
-  // In local development, also clear loopback IP throttle so developer testing is unblocked
+  // In local development, also clear in-memory and loopback throttle
   await loginThrottleService.resetDevIpThrottle();
 
   return {
@@ -78,10 +86,13 @@ const run = async (): Promise<void> => {
       process.exit(1);
     }
 
+    const hasAllFlag = process.argv.includes('--all') || process.argv.includes('-a');
     let email = parseEmailArg();
 
-    if (!email) {
-      email = await promptQuestion('Enter Admin Email to reset throttle: ');
+    if (hasAllFlag) {
+      email = 'all';
+    } else if (!email) {
+      email = await promptQuestion('Enter Admin Email to reset throttle (or "all"): ');
     }
 
     const result = await resetLoginThrottle(email);
@@ -89,8 +100,8 @@ const run = async (): Promise<void> => {
     console.log('\n====================================================');
     console.log('  AXION PackTech - Login Throttle Reset');
     console.log('====================================================');
-    console.log(`Account: ${result.email}`);
-    console.log('Status:  Login throttle reset successfully for this account.');
+    console.log(`Target:  ${result.email}`);
+    console.log('Status:  Login throttle reset successfully.');
     console.log('====================================================\n');
 
     await disconnectRedis().catch(() => {});

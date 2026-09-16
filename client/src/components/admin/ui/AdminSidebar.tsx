@@ -11,6 +11,7 @@ interface NavItem {
   exact?: boolean;
   icon: React.ReactNode;
   badge?: string;
+  badgeColor?: string;
 }
 
 interface NavSection {
@@ -20,7 +21,7 @@ interface NavSection {
 
 export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
-  const { isOpen, closeNav } = useAdminMobileNav();
+  const { isOpen, closeNav, isSidebarCollapsed, toggleSidebarCollapse } = useAdminMobileNav();
 
   const isItemActive = (item: NavItem) => {
     if (item.exact) {
@@ -31,10 +32,10 @@ export const AdminSidebar: React.FC = () => {
 
   const navSections: NavSection[] = [
     {
-      title: 'Primary Workspace',
+      title: 'Operations',
       items: [
         {
-          label: 'Dashboard',
+          label: 'Dashboard Overview',
           href: '/admin',
           exact: true,
           icon: (
@@ -44,20 +45,92 @@ export const AdminSidebar: React.FC = () => {
           ),
         },
         {
-          label: 'Equipment Catalog',
+          label: 'Equipment Hierarchy Tree',
           href: '/admin/product-pages',
           exact: false,
-          badge: 'CMS',
+          badge: 'Tree',
+          badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
           icon: (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
             </svg>
           ),
         },
       ],
     },
     {
-      title: 'Content & Stories',
+      title: 'Catalog Data',
+      items: [
+        {
+          label: 'Categories',
+          href: '/admin/products/categories',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+          ),
+        },
+        {
+          label: 'Subcategories',
+          href: '/admin/products/subcategories',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2" />
+            </svg>
+          ),
+        },
+        {
+          label: 'Machinery Products',
+          href: '/admin/products/items',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          ),
+        },
+        {
+          label: 'Machine Models',
+          href: '/admin/products/models',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Sectors & Solutions',
+      items: [
+        {
+          label: 'Industry Sectors',
+          href: '/admin/industries',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          ),
+        },
+        {
+          label: 'Engineering Services',
+          href: '/admin/services',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Editorial & Media',
       items: [
         {
           label: 'News & Press',
@@ -70,7 +143,7 @@ export const AdminSidebar: React.FC = () => {
           ),
         },
         {
-          label: 'Blogs & Insights',
+          label: 'Technical Blog',
           href: '/admin/blogs',
           exact: false,
           icon: (
@@ -79,15 +152,27 @@ export const AdminSidebar: React.FC = () => {
             </svg>
           ),
         },
+        {
+          label: 'Cloudflare R2 Media',
+          href: '/admin/media',
+          exact: false,
+          badge: 'R2',
+          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          ),
+        },
       ],
     },
     {
-      title: 'Company & Careers',
+      title: 'Talent & Inquiries',
       items: [
         {
           label: 'Job Openings',
           href: '/admin/careers',
-          exact: true,
+          exact: false,
           icon: (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -97,13 +182,28 @@ export const AdminSidebar: React.FC = () => {
         {
           label: 'Applications',
           href: '/admin/applications',
-          exact: true,
+          exact: false,
           icon: (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           ),
         },
+        {
+          label: 'Contact Inquiries',
+          href: '/admin/inquiries',
+          exact: false,
+          icon: (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Page CMS',
+      items: [
         {
           label: 'Home Page CMS',
           href: '/admin/pages/home',
@@ -124,75 +224,29 @@ export const AdminSidebar: React.FC = () => {
             </svg>
           ),
         },
-      ],
-    },
-    {
-      title: 'Operations & Media',
-      items: [
         {
-          label: 'Industries',
-          href: '/admin/industries',
+          label: 'Responsibilities CMS',
+          href: '/admin/pages/responsibilities',
           exact: true,
           icon: (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           ),
         },
+      ],
+    },
+    {
+      title: 'Configuration',
+      items: [
         {
-          label: 'Services',
-          href: '/admin/services',
-          exact: true,
+          label: 'System Settings',
+          href: '/admin/settings',
+          exact: false,
           icon: (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          ),
-        },
-        {
-          label: 'Inquiries & Leads',
-          href: '/admin/inquiries',
-          exact: true,
-          icon: (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          ),
-        },
-        {
-          label: 'Media Library',
-          href: '/admin/media',
-          exact: true,
-          icon: (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          ),
-        },
-      ],
-    },
-    {
-      title: 'System Settings',
-      items: [
-        {
-          label: 'Contact Information',
-          href: '/admin/settings/contact',
-          exact: true,
-          icon: (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          ),
-        },
-        {
-          label: 'Site Configuration',
-          href: '/admin/settings/site',
-          exact: true,
-          icon: (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
           ),
         },
@@ -213,24 +267,31 @@ export const AdminSidebar: React.FC = () => {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:sticky top-0 bottom-0 left-0 z-50 lg:z-30 w-72 shrink-0 bg-[#061220] border-r border-slate-800/80 flex flex-col h-screen text-slate-300 select-none shadow-2xl lg:shadow-none transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed lg:sticky top-0 bottom-0 left-0 z-50 lg:z-30 shrink-0 bg-[#061220] border-r border-slate-800 flex flex-col h-screen text-slate-300 select-none shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'
+        } ${isSidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-64'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800/80 bg-[#040d18]">
-          <Link href="/admin" onClick={closeNav} className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white font-black text-sm tracking-wider group-hover:scale-105 transition-transform">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/90 bg-[#040d18]">
+          <Link
+            href="/admin"
+            onClick={closeNav}
+            className="flex items-center gap-3 group min-w-0"
+            title="AXION PackTech Admin Control Center"
+          >
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white font-black text-xs tracking-wider shrink-0 group-hover:scale-105 transition-transform">
               AX
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-white uppercase group-hover:text-sky-300 transition-colors">
-                AXION PackTech
-              </span>
-              <span className="text-[10px] text-sky-400 font-semibold tracking-widest uppercase">
-                Control CMS
-              </span>
-            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex flex-col min-w-0 transition-opacity duration-200">
+                <span className="text-xs font-black tracking-tight text-white uppercase truncate group-hover:text-sky-300 transition-colors">
+                  AXION PackTech
+                </span>
+                <span className="text-[9px] text-sky-400 font-mono tracking-widest uppercase truncate">
+                  Control CMS
+                </span>
+              </div>
+            )}
           </Link>
 
           {/* Mobile Close Button */}
@@ -245,30 +306,18 @@ export const AdminSidebar: React.FC = () => {
           </button>
         </div>
 
-        {/* Quick Launch CTA */}
-        <div className="px-4 pt-4 pb-2">
-          <Link
-            href="/admin/product-pages"
-            onClick={closeNav}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600/30 to-blue-600/30 hover:from-sky-600/40 hover:to-blue-600/40 border border-sky-500/40 text-sky-200 text-xs font-bold transition-all shadow-sm group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8] animate-pulse" />
-              <span>Manage Catalog</span>
-            </div>
-            <span className="text-sky-400 group-hover:translate-x-0.5 transition-transform text-xs">
-              →
-            </span>
-          </Link>
-        </div>
-
         {/* Navigation Links Scrollable Area */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-5 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4 custom-scrollbar">
           {navSections.map((sec) => (
             <div key={sec.title} className="space-y-1">
-              <h3 className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
-                {sec.title}
-              </h3>
+              {!isSidebarCollapsed ? (
+                <h3 className="px-2.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 font-mono">
+                  {sec.title}
+                </h3>
+              ) : (
+                <div className="h-px bg-slate-800 my-2 mx-1" />
+              )}
+
               <div className="space-y-0.5">
                 {sec.items.map((item) => {
                   const active = isItemActive(item);
@@ -277,33 +326,41 @@ export const AdminSidebar: React.FC = () => {
                       key={item.href}
                       href={item.href}
                       onClick={closeNav}
-                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group ${
+                      title={isSidebarCollapsed ? item.label : undefined}
+                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all group relative ${
                         active
-                          ? 'bg-sky-500/20 text-white border border-sky-500/40 shadow-sm font-semibold'
+                          ? 'bg-sky-500/15 text-white border border-sky-500/30 shadow-sm font-semibold'
                           : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent'
-                      }`}
+                      } ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`flex items-center gap-2.5 min-w-0 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
                         <span
-                          className={`transition-colors ${
-                            active ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300'
+                          className={`transition-colors shrink-0 ${
+                            active ? 'text-sky-400' : 'text-slate-400 group-hover:text-slate-200'
                           }`}
                         >
                           {item.icon}
                         </span>
-                        <span className="truncate">{item.label}</span>
+                        {!isSidebarCollapsed && (
+                          <span className="truncate text-xs">{item.label}</span>
+                        )}
                       </div>
 
-                      {item.badge && (
+                      {!isSidebarCollapsed && item.badge && (
                         <span
-                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                            active
-                              ? 'bg-sky-500 text-white'
-                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                            item.badgeColor || (active
+                              ? 'bg-sky-500 text-white border-sky-400'
+                              : 'bg-slate-800 text-slate-400 border-slate-700')
                           }`}
                         >
                           {item.badge}
                         </span>
+                      )}
+
+                      {/* Active Indicator Bar */}
+                      {active && (
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-sky-400 rounded-r shadow-[0_0_8px_#38bdf8]" />
                       )}
                     </Link>
                   );
@@ -313,15 +370,34 @@ export const AdminSidebar: React.FC = () => {
           ))}
         </nav>
 
-        {/* Footer Info */}
-        <div className="p-4 border-t border-slate-800/80 bg-[#040d18] text-slate-400 text-[11px] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-            <span className="font-medium text-slate-300">Single Source of Truth</span>
-          </div>
-          <span className="font-mono text-slate-500 text-[10px]">v2.0</span>
+        {/* Sidebar Footer & Collapse Toggle */}
+        <div className="p-3 border-t border-slate-800/90 bg-[#040d18] flex items-center justify-between gap-2">
+          {!isSidebarCollapsed && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0" />
+              <span className="text-[11px] font-medium text-slate-400 truncate">MongoDB Live</span>
+            </div>
+          )}
+
+          {/* Desktop Sidebar Collapse / Expand Toggle Button */}
+          <button
+            onClick={toggleSidebarCollapse}
+            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-auto"
+            title={isSidebarCollapsed ? 'Expand Sidebar (Ctrl + B)' : 'Collapse Sidebar'}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
       </aside>
     </>
   );
 };
+

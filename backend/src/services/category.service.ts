@@ -9,12 +9,17 @@ import { CACHE_KEYS, CACHE_TTL } from '../constants/cacheKeys.js';
 import { AppError } from '../utils/appError.js';
 import { logger } from '../utils/logger.js';
 import { triggerNextjsRevalidation } from '../utils/revalidate.js';
+import { generateUniqueSlug } from '../utils/slugify.js';
 
 export interface CategoryTreeNode {
   _id: string;
   name: string;
   slug: string;
+  type?: 'category' | 'product' | 'model';
+  catalogProductId?: string | null;
   parentCategoryId?: string | null;
+  parentId?: string | null;
+  parentType?: string | null;
   shortDescription?: string;
   description?: string;
   media: {
@@ -40,6 +45,31 @@ export interface CategoryTreeNode {
     };
     displayOrder: number;
     modelCount?: number;
+    models?: Array<{
+      _id: string;
+      name: string;
+      slug: string;
+      modelNumber?: string;
+      shortDescription?: string;
+      media?: {
+        image?: string;
+        heroImage?: string;
+      };
+      displayOrder?: number;
+    }>;
+  }>;
+  modelCount?: number;
+  models?: Array<{
+    _id: string;
+    name: string;
+    slug: string;
+    modelNumber?: string;
+    shortDescription?: string;
+    media?: {
+      image?: string;
+      heroImage?: string;
+    };
+    displayOrder?: number;
   }>;
 }
 
@@ -128,7 +158,8 @@ export class CategoryService {
   }
 
   /**
-   * Builds full multi-tier category tree with child categories and nested products.
+   * Builds full multi-tier catalog tree with categories, subcategories, products, and models.
+   * Dynamically includes root categories, nested products, and parentless products/models.
    * Cached for maximum performance.
    */
   public async getCategoryTree(activeOnly: boolean = true): Promise<CategoryTreeNode[]> {
@@ -146,24 +177,52 @@ export class CategoryService {
 
     const [categories, products, models] = await Promise.all([
       Category.find(catFilter)
-        .select('_id name slug parentCategoryId shortDescription media displayOrder isActive')
+        .select('_id name slug parentCategoryId shortDescription description media features applications benefits displayOrder isActive')
         .sort({ displayOrder: 1, name: 1 })
         .lean(),
       Product.find(prodFilter)
-        .select('_id name slug categoryId shortDescription media displayOrder')
+        .select('_id name slug categoryId parentId parentType shortDescription description media features applications benefits displayOrder isActive')
         .sort({ displayOrder: 1, name: 1 })
         .lean(),
       ProductModel.find(activeOnly ? { isActive: true } : {})
-        .select('_id productId')
+        .select('_id productId parentId parentType name slug modelNumber shortDescription description media displayOrder isActive')
+        .sort({ displayOrder: 1, name: 1 })
         .lean(),
     ]);
 
-    // Group models count by productId
+    // Group models and model counts by productId
     const modelCountsByProduct = new Map<string, number>();
+    const modelsByProduct = new Map<
+      string,
+      Array<{
+        _id: string;
+        name: string;
+        slug: string;
+        modelNumber?: string;
+        shortDescription?: string;
+        media?: { image?: string; heroImage?: string };
+        displayOrder?: number;
+      }>
+    >();
+
     for (const m of models) {
-      const pid = m.productId?.toString();
+      const pid =
+        m.productId?.toString() ||
+        (m.parentType === 'product' && m.parentId ? m.parentId.toString() : null);
       if (pid) {
         modelCountsByProduct.set(pid, (modelCountsByProduct.get(pid) || 0) + 1);
+        if (!modelsByProduct.has(pid)) {
+          modelsByProduct.set(pid, []);
+        }
+        modelsByProduct.get(pid)!.push({
+          _id: m._id.toString(),
+          name: m.name,
+          slug: m.slug,
+          modelNumber: (m as any).modelNumber,
+          shortDescription: (m as any).shortDescription,
+          media: (m as any).media || {},
+          displayOrder: (m as any).displayOrder || 0,
+        });
       }
     }
 
@@ -174,7 +233,10 @@ export class CategoryService {
         _id: cat._id.toString(),
         name: cat.name,
         slug: cat.slug,
+        type: 'category',
         parentCategoryId: cat.parentCategoryId ? cat.parentCategoryId.toString() : null,
+        parentId: cat.parentCategoryId ? cat.parentCategoryId.toString() : null,
+        parentType: 'category',
         shortDescription: cat.shortDescription,
         description: cat.description,
         media: cat.media || {},
@@ -188,21 +250,50 @@ export class CategoryService {
       });
     }
 
-    // Assign products to categories
+    // Assign products to categories or collect standalone/parentless products
+    const rootProducts: CategoryTreeNode[] = [];
     for (const prod of products) {
-      if (prod.categoryId) {
-        const parentNode = nodeMap.get(prod.categoryId.toString());
-        if (parentNode) {
-          parentNode.products.push({
-            _id: prod._id.toString(),
-            name: prod.name,
-            slug: prod.slug,
-            shortDescription: prod.shortDescription,
-            media: prod.media || {},
-            displayOrder: prod.displayOrder,
-            modelCount: modelCountsByProduct.get(prod._id.toString()) || 0,
-          });
-        }
+      const prodCategoryKey = prod.categoryId
+        ? prod.categoryId.toString()
+        : prod.parentType === 'category' && prod.parentId
+        ? prod.parentId.toString()
+        : null;
+
+      const parentCategory = prodCategoryKey ? nodeMap.get(prodCategoryKey) : null;
+      if (parentCategory) {
+        parentCategory.products.push({
+          _id: prod._id.toString(),
+          name: prod.name,
+          slug: prod.slug,
+          shortDescription: prod.shortDescription,
+          media: prod.media || {},
+          displayOrder: prod.displayOrder,
+          modelCount: modelCountsByProduct.get(prod._id.toString()) || 0,
+          models: modelsByProduct.get(prod._id.toString()) || [],
+        });
+      } else {
+        // Standalone / Parentless Product at root level
+        rootProducts.push({
+          _id: prod._id.toString(),
+          name: prod.name,
+          slug: prod.slug,
+          type: 'product',
+          parentCategoryId: null,
+          parentId: null,
+          parentType: null,
+          shortDescription: prod.shortDescription,
+          description: prod.description,
+          media: prod.media || {},
+          features: prod.features || [],
+          applications: prod.applications || [],
+          benefits: prod.benefits || [],
+          displayOrder: prod.displayOrder,
+          isActive: prod.isActive,
+          children: [],
+          products: [],
+          models: modelsByProduct.get(prod._id.toString()) || [],
+          modelCount: modelCountsByProduct.get(prod._id.toString()) || 0,
+        });
       }
     }
 
@@ -220,12 +311,68 @@ export class CategoryService {
       }
     }
 
-    // Sort children and products
+    // Append standalone root products to rootNodes
+    rootNodes.push(...rootProducts);
+
+    // Check for parentless models (models not attached to any product)
+    const assignedModelIds = new Set<string>();
+    for (const [_, pModels] of modelsByProduct.entries()) {
+      for (const m of pModels) {
+        assignedModelIds.add(m._id);
+      }
+    }
+
+    for (const m of models) {
+      if (!assignedModelIds.has(m._id.toString())) {
+        rootNodes.push({
+          _id: m._id.toString(),
+          name: m.name,
+          slug: m.slug,
+          type: 'model',
+          parentCategoryId: null,
+          parentId: null,
+          parentType: null,
+          shortDescription: (m as any).shortDescription,
+          description: (m as any).description,
+          media: (m as any).media || {},
+          features: [],
+          applications: [],
+          benefits: [],
+          displayOrder: (m as any).displayOrder || 0,
+          isActive: m.isActive,
+          children: [],
+          products: [],
+          models: [],
+          modelCount: 0,
+        });
+      }
+    }
+
+    // Sort children and products recursively
     const sortTreeRecursively = (nodes: CategoryTreeNode[]) => {
       nodes.sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name));
       for (const node of nodes) {
-        node.products.sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name));
-        if (node.children.length > 0) {
+        if (node.products && node.products.length > 0) {
+          node.products.sort(
+            (a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)
+          );
+          for (const prod of node.products) {
+            if (prod.models && prod.models.length > 0) {
+              prod.models.sort(
+                (a, b) =>
+                  (a.displayOrder || 0) - (b.displayOrder || 0) ||
+                  a.name.localeCompare(b.name)
+              );
+            }
+          }
+        }
+        if (node.models && node.models.length > 0) {
+          node.models.sort(
+            (a, b) =>
+              (a.displayOrder || 0) - (b.displayOrder || 0) || a.name.localeCompare(b.name)
+          );
+        }
+        if (node.children && node.children.length > 0) {
           sortTreeRecursively(node.children);
         }
       }
@@ -263,22 +410,95 @@ export class CategoryService {
   }
 
   /**
-   * Generates breadcrumbs for a category path
+   * Generates breadcrumbs for any entity path (category, product, model)
    */
   public async buildCategoryBreadcrumbs(categoryId: string | mongoose.Types.ObjectId): Promise<BreadcrumbItem[]> {
-    const ancestry = await this.getCategoryAncestry(categoryId);
+    return this.buildEntityBreadcrumbs(categoryId, 'category');
+  }
+
+  /**
+   * Resolves full breadcrumb trail for ANY catalog entity regardless of depth or mixed parent types.
+   */
+  public async buildEntityBreadcrumbs(
+    entityId: string | mongoose.Types.ObjectId,
+    entityType: 'category' | 'product' | 'model'
+  ): Promise<BreadcrumbItem[]> {
+    const trail: Array<{ name: string; slug: string; type: 'category' | 'product' | 'model' }> = [];
+    let currentId: string | null = entityId.toString();
+    let currentType: 'category' | 'product' | 'model' | null = entityType;
+    const visited = new Set<string>();
+
+    while (currentId && currentType && !visited.has(`${currentType}:${currentId}`)) {
+      visited.add(`${currentType}:${currentId}`);
+
+      if (currentType === 'category') {
+        const doc: any = await Category.findById(currentId)
+          .select('_id name slug parentCategoryId parentId parentType')
+          .lean();
+        if (!doc) break;
+        trail.unshift({ name: doc.name, slug: doc.slug, type: 'category' });
+        if (doc.parentId && doc.parentType) {
+          currentId = doc.parentId.toString();
+          currentType = doc.parentType as 'category' | 'product' | 'model';
+        } else if (doc.parentCategoryId) {
+          currentId = doc.parentCategoryId.toString();
+          currentType = 'category';
+        } else {
+          currentId = null;
+          currentType = null;
+        }
+      } else if (currentType === 'product') {
+        const doc: any = await Product.findById(currentId)
+          .select('_id name slug categoryId parentId parentType')
+          .lean();
+        if (!doc) break;
+        trail.unshift({ name: doc.name, slug: doc.slug, type: 'product' });
+        if (doc.parentId && doc.parentType) {
+          currentId = doc.parentId.toString();
+          currentType = doc.parentType as 'category' | 'product' | 'model';
+        } else if (doc.categoryId) {
+          currentId = doc.categoryId.toString();
+          currentType = 'category';
+        } else {
+          currentId = null;
+          currentType = null;
+        }
+      } else if (currentType === 'model') {
+        const doc: any = await ProductModel.findById(currentId)
+          .select('_id name modelNumber slug productId parentId parentType')
+          .lean();
+        if (!doc) break;
+        trail.unshift({
+          name: doc.modelNumber ? `${doc.name} (${doc.modelNumber})` : doc.name,
+          slug: doc.slug,
+          type: 'model',
+        });
+        if (doc.parentId && doc.parentType) {
+          currentId = doc.parentId.toString();
+          currentType = doc.parentType as 'category' | 'product' | 'model';
+        } else if (doc.productId) {
+          currentId = doc.productId.toString();
+          currentType = 'product';
+        } else {
+          currentId = null;
+          currentType = null;
+        }
+      } else {
+        break;
+      }
+    }
+
     const breadcrumbs: BreadcrumbItem[] = [
       { name: 'Products', slug: '', path: '/products', type: 'root' },
     ];
-
-    let currentPath = '/products';
-    for (const item of ancestry) {
-      currentPath += `/${item.slug}`;
+    let cumulativePath = '/products';
+    for (const item of trail) {
+      cumulativePath += `/${item.slug}`;
       breadcrumbs.push({
         name: item.name,
         slug: item.slug,
-        path: currentPath,
-        type: 'category',
+        path: cumulativePath,
+        type: item.type,
       });
     }
 
@@ -286,7 +506,8 @@ export class CategoryService {
   }
 
   /**
-   * Get single category by slug with its direct children, products, models count, and breadcrumbs.
+   * Get single category by slug with all direct children (categories, products, models),
+   * enriched products, models count, and universal breadcrumbs.
    */
   public async getCategoryBySlug(slug: string, activeOnly: boolean = true) {
     const cacheKey = activeOnly
@@ -315,17 +536,28 @@ export class CategoryService {
       }
     }
 
-    const childFilter: Record<string, unknown> = { parentCategoryId: category._id };
-    const prodFilter: Record<string, unknown> = { categoryId: category._id };
+    // Direct children queries: can be categories, products, or models
+    const childCatFilter: Record<string, unknown> = {
+      $or: [{ parentCategoryId: category._id }, { parentId: category._id }],
+    };
+    const childProdFilter: Record<string, unknown> = {
+      $or: [{ categoryId: category._id }, { parentId: category._id }],
+    };
+    const childModelFilter: Record<string, unknown> = {
+      parentId: category._id,
+    };
+
     if (activeOnly) {
-      childFilter.isActive = true;
-      prodFilter.isActive = true;
+      childCatFilter.isActive = true;
+      childProdFilter.isActive = true;
+      childModelFilter.isActive = true;
     }
 
-    const [children, products, breadcrumbs] = await Promise.all([
-      Category.find(childFilter).sort({ displayOrder: 1, name: 1 }).lean(),
-      Product.find(prodFilter).sort({ displayOrder: 1, name: 1 }).lean(),
-      this.buildCategoryBreadcrumbs(category._id),
+    const [children, products, directModels, breadcrumbs] = await Promise.all([
+      Category.find(childCatFilter).sort({ displayOrder: 1, name: 1 }).lean(),
+      Product.find(childProdFilter).sort({ displayOrder: 1, name: 1 }).lean(),
+      ProductModel.find(childModelFilter).sort({ displayOrder: 1, name: 1 }).lean(),
+      this.buildEntityBreadcrumbs(category._id, 'category'),
     ]);
 
     // Fetch models for each product
@@ -355,10 +587,66 @@ export class CategoryService {
       modelCount: (modelsByProductId.get(p._id.toString()) || []).length,
     }));
 
+    // Build unified directChildren array across categories, products, and models
+    const directChildren: Array<{
+      _id: string;
+      name: string;
+      slug: string;
+      type: 'category' | 'product' | 'model';
+      modelNumber?: string;
+      shortDescription?: string;
+      description?: string;
+      media?: any;
+      displayOrder: number;
+      isActive: boolean;
+      modelCount?: number;
+      isFeatured?: boolean;
+    }> = [
+      ...children.map((c) => ({
+        _id: c._id.toString(),
+        name: c.name,
+        slug: c.slug,
+        type: 'category' as const,
+        shortDescription: c.shortDescription,
+        description: c.description,
+        media: c.media,
+        displayOrder: c.displayOrder || 0,
+        isActive: c.isActive,
+      })),
+      ...enrichedProducts.map((p) => ({
+        _id: p._id.toString(),
+        name: p.name,
+        slug: p.slug,
+        type: 'product' as const,
+        shortDescription: p.shortDescription,
+        description: p.description,
+        media: p.media,
+        displayOrder: p.displayOrder || 0,
+        isActive: p.isActive,
+        modelCount: p.modelCount || 0,
+        isFeatured: p.isFeatured || false,
+      })),
+      ...directModels.map((m) => ({
+        _id: m._id.toString(),
+        name: m.name,
+        slug: m.slug,
+        type: 'model' as const,
+        modelNumber: m.modelNumber,
+        shortDescription: m.shortDescription,
+        description: m.description,
+        media: m.media,
+        displayOrder: m.displayOrder || 0,
+        isActive: m.isActive,
+      })),
+    ];
+
+    directChildren.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0) || a.name.localeCompare(b.name));
+
     const result = {
       category,
       children,
       products: enrichedProducts,
+      directChildren,
       breadcrumbs,
     };
 
@@ -423,10 +711,7 @@ export class CategoryService {
   }
 
   public async createCategory(data: Partial<ICategory>) {
-    const existing = await Category.findOne({ slug: data.slug?.toLowerCase().trim() });
-    if (existing) {
-      throw AppError.badRequest(`Category with slug "${data.slug}" already exists`);
-    }
+    const uniqueSlug = await generateUniqueSlug(data.name || 'category', Category, null, data.slug);
 
     if (data.parentCategoryId) {
       const parentExists = await Category.findById(data.parentCategoryId);
@@ -437,9 +722,10 @@ export class CategoryService {
 
     const category = await Category.create({
       ...data,
-      slug: data.slug?.toLowerCase().trim(),
-      parentCategoryId: data.parentCategoryId || null,
+      slug: uniqueSlug,
+      parentCategoryId: data.parentCategoryId || (data.parentType === 'category' && data.parentId ? data.parentId : null),
       parentId: data.parentId !== undefined ? (data.parentId || null) : (data.parentCategoryId || null),
+      parentType: data.parentType || (data.parentCategoryId ? 'category' : null),
     });
 
     await this.invalidateCategoryCache();
@@ -456,20 +742,13 @@ export class CategoryService {
       throw AppError.notFound('Category not found');
     }
 
-    if (data.slug && data.slug.toLowerCase().trim() !== category.slug) {
-      const existing = await Category.findOne({
-        slug: data.slug.toLowerCase().trim(),
-        _id: { $ne: id },
-      });
-      if (existing) {
-        throw AppError.badRequest(`Category with slug "${data.slug}" already exists`);
-      }
-      data.slug = data.slug.toLowerCase().trim();
+    if (data.slug || (data.name && data.name !== category.name && !data.slug)) {
+      data.slug = await generateUniqueSlug(data.name || category.name, Category, id, data.slug);
     }
 
     // Validate parent change to prevent circular loops
-    if (data.parentCategoryId !== undefined) {
-      const newParent = data.parentCategoryId ? data.parentCategoryId.toString() : null;
+    if (data.parentCategoryId !== undefined || data.parentId !== undefined) {
+      const newParent = data.parentId ? data.parentId.toString() : data.parentCategoryId ? data.parentCategoryId.toString() : null;
       if (newParent) {
         if (newParent === id) {
           throw AppError.badRequest('A category cannot be its own parent');
@@ -478,11 +757,11 @@ export class CategoryService {
         if (descendants.includes(newParent)) {
           throw AppError.badRequest('Cannot move category under one of its own descendants');
         }
-        const parentExists = await Category.findById(newParent);
-        if (!parentExists) {
-          throw AppError.badRequest('Specified parent category does not exist');
-        }
       }
+    }
+
+    if (data.parentId !== undefined) {
+      data.parentCategoryId = (data.parentType === 'category' && data.parentId ? data.parentId : null) as any;
     }
 
     Object.assign(category, data);

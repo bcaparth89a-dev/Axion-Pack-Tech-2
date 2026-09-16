@@ -3,13 +3,14 @@ import { ProductModel, IProductModel } from '../models/ProductModel.model.js';
 import { IEntityHero } from '../models/Hero.schema.js';
 import { Product } from '../models/Product.model.js';
 import { Category } from '../models/Category.model.js';
-import { categoryService, BreadcrumbItem } from './category.service.js';
+import { categoryService } from './category.service.js';
 import { cacheService } from '../cache/cache.service.js';
 import { CACHE_KEYS, CACHE_TTL } from '../constants/cacheKeys.js';
 import { getPagination, buildPaginatedResponse, PaginatedResponse } from '../utils/pagination.js';
 import { AppError } from '../utils/appError.js';
 import { logger } from '../utils/logger.js';
 import { triggerNextjsRevalidation } from '../utils/revalidate.js';
+import { generateUniqueSlug } from '../utils/slugify.js';
 
 export interface ModelListParams {
   productId?: string;
@@ -95,68 +96,114 @@ export class ProductModelService {
       throw AppError.notFound(`Model with slug "${slug}" not found`);
     }
 
-    const product = model.productId as unknown as {
+    let product = model.productId as unknown as {
       _id: mongoose.Types.ObjectId;
       name: string;
       slug: string;
       categoryId?: mongoose.Types.ObjectId;
       isActive?: boolean;
+      media?: any;
+      shortDescription?: string;
+      description?: string;
+      catalogPdf?: any;
     };
 
-    if (activeOnly && model.productId) {
-      if (!product || product.isActive === false) {
-        throw AppError.notFound(`Model with slug "${slug}" not found`);
-      }
-      if (product.categoryId) {
-        const parentCat = await Category.findById(product.categoryId).select('_id isActive').lean();
-        if (!parentCat || !parentCat.isActive) {
-          throw AppError.notFound(`Model with slug "${slug}" not found`);
-        }
-      }
+    if (!product && model.parentId && model.parentType === 'product') {
+      product = (await Product.findById(model.parentId).lean()) as any;
     }
 
-    // Build breadcrumbs
-    const breadcrumbs: BreadcrumbItem[] = [
-      { name: 'Products', slug: '', path: '/products', type: 'root' },
+    // Build universal breadcrumbs
+    const breadcrumbs = await categoryService.buildEntityBreadcrumbs(model._id, 'model');
+    const fullPath = breadcrumbs[breadcrumbs.length - 1]?.path || `/products/${model.slug}`;
+
+    // Direct children queries: models can have categories, products, or models under them!
+    const childCatFilter: Record<string, unknown> = { parentId: model._id };
+    const childProdFilter: Record<string, unknown> = { parentId: model._id };
+    const childModelFilter: Record<string, unknown> = { parentId: model._id };
+
+    if (activeOnly) {
+      childCatFilter.isActive = true;
+      childProdFilter.isActive = true;
+      childModelFilter.isActive = true;
+    }
+
+    const [childCategories, childProducts, childModels] = await Promise.all([
+      Category.find(childCatFilter).sort({ displayOrder: 1, name: 1 }).lean(),
+      Product.find(childProdFilter).sort({ displayOrder: 1, name: 1 }).lean(),
+      ProductModel.find(childModelFilter).sort({ displayOrder: 1, name: 1 }).lean(),
+    ]);
+
+    // Count models for child products
+    const childProductIds = childProducts.map((p) => p._id);
+    const childModelCounts = await ProductModel.aggregate([
+      { $match: { productId: { $in: childProductIds } } },
+      { $group: { _id: '$productId', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map<string, number>();
+    for (const mc of childModelCounts) {
+      countMap.set(mc._id.toString(), mc.count);
+    }
+
+    const directChildren: Array<{
+      _id: string;
+      name: string;
+      slug: string;
+      type: 'category' | 'product' | 'model';
+      modelNumber?: string;
+      shortDescription?: string;
+      description?: string;
+      media?: any;
+      displayOrder: number;
+      isActive: boolean;
+      modelCount?: number;
+      isFeatured?: boolean;
+    }> = [
+      ...childCategories.map((c) => ({
+        _id: c._id.toString(),
+        name: c.name,
+        slug: c.slug,
+        type: 'category' as const,
+        shortDescription: c.shortDescription,
+        description: c.description,
+        media: c.media,
+        displayOrder: c.displayOrder || 0,
+        isActive: c.isActive,
+      })),
+      ...childProducts.map((p) => ({
+        _id: p._id.toString(),
+        name: p.name,
+        slug: p.slug,
+        type: 'product' as const,
+        shortDescription: p.shortDescription,
+        description: p.description,
+        media: p.media,
+        displayOrder: p.displayOrder || 0,
+        isActive: p.isActive,
+        modelCount: countMap.get(p._id.toString()) || 0,
+        isFeatured: p.isFeatured || false,
+      })),
+      ...childModels.map((m) => ({
+        _id: m._id.toString(),
+        name: m.name,
+        slug: m.slug,
+        type: 'model' as const,
+        modelNumber: m.modelNumber,
+        shortDescription: m.shortDescription,
+        description: m.description,
+        media: m.media,
+        displayOrder: m.displayOrder || 0,
+        isActive: m.isActive,
+      })),
     ];
 
-    let currentPath = '/products';
-    if (product && product.categoryId) {
-      const ancestry = await categoryService.getCategoryAncestry(product.categoryId);
-      for (const item of ancestry) {
-        currentPath += `/${item.slug}`;
-        breadcrumbs.push({
-          name: item.name,
-          slug: item.slug,
-          path: currentPath,
-          type: 'category',
-        });
-      }
-    }
-
-    if (product) {
-      currentPath += `/${product.slug}`;
-      breadcrumbs.push({
-        name: product.name,
-        slug: product.slug,
-        path: currentPath,
-        type: 'product',
-      });
-    }
-
-    currentPath += `/${model.slug}`;
-    breadcrumbs.push({
-      name: `${model.name} (${model.modelNumber})`,
-      slug: model.slug,
-      path: currentPath,
-      type: 'model',
-    });
+    directChildren.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0) || a.name.localeCompare(b.name));
 
     const result = {
       model,
-      product,
+      product: product || { _id: model._id, name: model.name, slug: model.slug },
+      directChildren,
       breadcrumbs,
-      fullPath: currentPath,
+      fullPath,
     };
 
     await cacheService.setCached(cacheKey, result, CACHE_TTL.MEDIUM);
@@ -172,10 +219,12 @@ export class ProductModelService {
   }
 
   public async createModel(data: Partial<IProductModel>) {
-    const existing = await ProductModel.findOne({ slug: data.slug?.toLowerCase().trim() });
-    if (existing) {
-      throw AppError.badRequest(`Model with slug "${data.slug}" already exists`);
-    }
+    const uniqueSlug = await generateUniqueSlug(
+      data.name || data.modelNumber || 'model',
+      ProductModel,
+      null,
+      data.slug
+    );
 
     if (data.productId) {
       const productExists = await Product.findById(data.productId);
@@ -186,9 +235,10 @@ export class ProductModelService {
 
     const model = await ProductModel.create({
       ...data,
-      slug: data.slug?.toLowerCase().trim(),
-      productId: data.productId || null,
+      slug: uniqueSlug,
+      productId: data.productId || (data.parentType === 'product' && data.parentId ? data.parentId : null),
       parentId: data.parentId !== undefined ? (data.parentId || null) : (data.productId || null),
+      parentType: data.parentType || (data.productId ? 'product' : null),
     });
 
     await this.invalidateModelCache();
@@ -205,15 +255,13 @@ export class ProductModelService {
       throw AppError.notFound('Model not found');
     }
 
-    if (data.slug && data.slug.toLowerCase().trim() !== model.slug) {
-      const existing = await ProductModel.findOne({
-        slug: data.slug.toLowerCase().trim(),
-        _id: { $ne: id },
-      });
-      if (existing) {
-        throw AppError.badRequest(`Model with slug "${data.slug}" already exists`);
-      }
-      data.slug = data.slug.toLowerCase().trim();
+    if (data.slug || (data.name && data.name !== model.name && !data.slug)) {
+      data.slug = await generateUniqueSlug(
+        data.name || data.modelNumber || model.name,
+        ProductModel,
+        id,
+        data.slug
+      );
     }
 
     if (data.productId) {
@@ -221,6 +269,10 @@ export class ProductModelService {
       if (!productExists) {
         throw AppError.badRequest('Parent Product does not exist');
       }
+    }
+
+    if (data.parentId !== undefined) {
+      data.productId = (data.parentType === 'product' && data.parentId ? data.parentId : null) as any;
     }
 
     Object.assign(model, data);

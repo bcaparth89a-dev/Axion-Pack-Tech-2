@@ -1,12 +1,7 @@
 import { cache } from 'react';
-import { apiClient, ApiError } from './client';
-import {
-  Service,
-  servicesData as staticServices,
-  getServiceBySlug as getStaticServiceBySlug,
-} from '@/data/services';
-
+import { apiClient } from './client';
 export type { Service, ServiceSolution, ServiceStat, ServiceCTA, ServiceSEO } from '@/data/services';
+import { Service } from '@/data/services';
 
 function normalizeService(srv: Partial<Service>): Service {
   return {
@@ -51,7 +46,7 @@ function normalizeService(srv: Partial<Service>): Service {
 }
 
 /**
- * Fetch all published services from MongoDB with live API data and fallback to static dataset only on network failure.
+ * Fetch all published services from MongoDB with live API data.
  */
 export const getServices = cache(async (): Promise<Service[]> => {
   try {
@@ -62,9 +57,9 @@ export const getServices = cache(async (): Promise<Service[]> => {
     if (data && Array.isArray(data)) {
       return data.map(normalizeService);
     }
-    return staticServices;
+    return [];
   } catch {
-    return staticServices;
+    return [];
   }
 });
 
@@ -74,7 +69,7 @@ export const getServices = cache(async (): Promise<Service[]> => {
 export const getAllServices = getServices;
 
 /**
- * Fetch a single service by slug with live API data.
+ * Fetch a single service by slug with live API data from MongoDB.
  */
 export const getServiceBySlug = cache(async (slug: string): Promise<Service | undefined> => {
   const cleanSlug = (slug || '').toLowerCase().trim();
@@ -87,13 +82,7 @@ export const getServiceBySlug = cache(async (slug: string): Promise<Service | un
       return normalizeService(data);
     }
     return undefined;
-  } catch (err: unknown) {
-    if (err instanceof ApiError) {
-      // API error (such as 404 Not Found) means the service does not exist or is disabled
-      return undefined;
-    }
-    // Only on network connection failure (e.g. offline dev without running backend)
-    const fallback = getStaticServiceBySlug(cleanSlug);
-    return fallback ? normalizeService(fallback) : undefined;
+  } catch {
+    return undefined;
   }
 });

@@ -15,42 +15,35 @@ export default function ContactSection({
   return (
     <section
       id={id}
-      className={`relative w-full overflow-hidden bg-slate-50 border-t border-slate-200 ${className}`}
+      className={`relative w-full overflow-hidden bg-[#F8FAFC] border-t border-slate-200 ${className}`}
     >
       {/* Background Engineering Blueprint Pattern Accent */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#061527 1px, transparent 1px), linear-gradient(90deg, #061527 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] bg-grid-blueprint-dark" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
-        {/* Section Header (Centered) */}
+      <div className="container-wide py-16 sm:py-20 lg:py-28 relative z-10">
+        {/* Section Header */}
         {showHeading && (
-          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14 lg:mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-600/20 bg-sky-100/60 px-3.5 py-1 text-xs font-semibold tracking-wider text-sky-900 uppercase">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange shadow-[0_0_6px_#ea580c]" />
-              GET IN TOUCH
+          <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-300 bg-sky-50 px-3.5 py-1 text-xs font-mono font-bold tracking-widest text-[#0B192C] uppercase shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-brand-orange shadow-[0_0_6px_#ea580c]" />
+              <span>DIRECT ENGINEERING HOTLINE &amp; INQUIRY</span>
             </div>
 
-            <h2 className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              Let&apos;s Discuss Your Packaging Requirements
+            <h2 className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#0B192C] leading-tight">
+              Let&apos;s Discuss Your Packaging Project
             </h2>
 
-            <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-brand-orange shadow-[0_0_6px_#ea580c]" />
+            <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-brand-orange" />
 
-            <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-              Connect with our engineering team to discuss your packaging,
-              processing, automation, and production requirements.
+            <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto font-normal">
+              Connect directly with our application and project engineers to review machinery specifications,
+              floorplan space limits, and turnkey line integrations.
             </p>
           </div>
         )}
 
         {/* Balanced Two-Column Grid: [0.9fr_1.1fr] on Desktop, Stack on Mobile */}
-        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 sm:gap-8 lg:gap-10 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 sm:gap-8 lg:gap-12 items-stretch max-w-6xl mx-auto">
           {/* Left Column: Contact Information Panel */}
           <div className="flex flex-col">
             <ContactInfoCard />

@@ -12,6 +12,7 @@
     "seed": "tsx src/scripts/seed.ts",
     "seed:catalog": "tsx src/scripts/seedFullCatalog.ts",
     "create-admin": "tsx src/scripts/createAdmin.ts",
+    "reset-throttle": "tsx src/scripts/resetLoginThrottle.ts",
     "reset-login-throttle": "tsx src/scripts/resetLoginThrottle.ts"
   },
   "dependencies": {

@@ -34,6 +34,7 @@ export default function AdminMediaPage() {
   // Modals
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [corsModalOpen, setCorsModalOpen] = useState(false);
   const [previewMedia, setPreviewMedia] = useState<AdminMedia | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -250,6 +251,18 @@ export default function AdminMediaPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
               Paste Public URL
+            </button>
+
+            <button
+              onClick={() => setCorsModalOpen(true)}
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-sky-300 hover:text-white font-semibold text-xs rounded-xl border border-sky-800/40 shadow transition-all flex items-center gap-1.5"
+              title="View Cloudflare R2 Bucket CORS Policy"
+            >
+              <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>R2 CORS Setup</span>
             </button>
           </div>
         </div>
@@ -973,6 +986,106 @@ export default function AdminMediaPage() {
               className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
             >
               {isDeleting ? 'Deleting...' : forceDelete ? 'Force Delete Asset' : 'Delete Asset'}
+            </button>
+          </div>
+        </div>
+      </AdminModal>
+
+      {/* Cloudflare R2 CORS Setup & Policy Modal */}
+      <AdminModal
+        isOpen={corsModalOpen}
+        onClose={() => setCorsModalOpen(false)}
+        title="Cloudflare R2 Bucket CORS Setup"
+        description="Official CORS configuration for local development and production domains"
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          <div className="p-3.5 bg-sky-950/60 border border-sky-800/60 rounded-xl text-xs text-slate-300 space-y-2">
+            <div className="flex items-center gap-2 text-sky-400 font-bold">
+              <span>📋</span>
+              <span>How to Apply in Cloudflare Dashboard (30 Seconds)</span>
+            </div>
+            <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-300 pl-1 leading-relaxed">
+              <li>Log into your <strong>Cloudflare Dashboard</strong> → navigate to <strong>R2 Object Storage</strong>.</li>
+              <li>Click your bucket name: <code className="text-amber-400 font-mono bg-slate-900 px-1.5 py-0.5 rounded">axion-packtech-media</code>.</li>
+              <li>Go to the <strong>Settings</strong> tab and scroll down to <strong>CORS Policy</strong>.</li>
+              <li>Click <strong>Edit CORS Policy</strong> and paste the JSON below, then click <strong>Save</strong>.</li>
+            </ol>
+          </div>
+
+          <div className="relative">
+            <div className="flex items-center justify-between pb-1.5 text-xs text-slate-400">
+              <span className="font-semibold">CORS Policy JSON:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const corsJson = JSON.stringify(
+                    [
+                      {
+                        AllowedOrigins: [
+                          'http://localhost:3000',
+                          'http://127.0.0.1:3000',
+                          'http://localhost:5000',
+                          'http://127.0.0.1:5000',
+                          'https://axionpacktech.com',
+                          'https://www.axionpacktech.com',
+                          'https://admin.axionpacktech.com',
+                          'https://media.axionpacktech.com',
+                          'https://pub-a756b10839b346b68dabea7852d66a44.r2.dev',
+                        ],
+                        AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD', 'DELETE'],
+                        AllowedHeaders: ['*'],
+                        ExposeHeaders: ['ETag', 'Content-Type', 'Content-Length', 'Last-Modified'],
+                        MaxAgeSeconds: 3600,
+                      },
+                    ],
+                    null,
+                    2
+                  );
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(corsJson);
+                    showToast('CORS Policy JSON copied to clipboard!', 'success');
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-semibold transition-all active:scale-95"
+              >
+                <span>📋 Copy CORS JSON</span>
+              </button>
+            </div>
+            <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-[11px] font-mono text-amber-300 overflow-x-auto max-h-64 leading-relaxed">
+{JSON.stringify(
+  [
+    {
+      AllowedOrigins: [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
+        'https://axionpacktech.com',
+        'https://www.axionpacktech.com',
+        'https://admin.axionpacktech.com',
+        'https://media.axionpacktech.com',
+        'https://pub-a756b10839b346b68dabea7852d66a44.r2.dev',
+      ],
+      AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD', 'DELETE'],
+      AllowedHeaders: ['*'],
+      ExposeHeaders: ['ETag', 'Content-Type', 'Content-Length', 'Last-Modified'],
+      MaxAgeSeconds: 3600,
+    },
+  ],
+  null,
+  2
+)}
+            </pre>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => setCorsModalOpen(false)}
+              className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
+            >
+              Done
             </button>
           </div>
         </div>

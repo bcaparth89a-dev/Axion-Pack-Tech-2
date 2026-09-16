@@ -60,8 +60,8 @@ export default function AboutHero({
       />
 
       {/* Hero Content Grid */}
-      <div className="relative z-20 mx-auto max-w-7xl px-6 sm:px-8 lg:px-12 py-20 sm:py-28 w-full">
-        <div className={`grid grid-cols-1 ${hasSlider ? 'lg:grid-cols-12' : ''} items-center gap-12 lg:gap-14`}>
+      <div className="relative z-20 container-wide py-20 sm:py-28 w-full">
+        <div className={`grid grid-cols-1 ${hasSlider ? 'lg:grid-cols-12' : ''} items-center gap-12 lg:gap-16`}>
           {/* Left Column: Heading & Narrative */}
           <div className={`${hasSlider ? 'lg:col-span-7' : 'max-w-3xl'} space-y-6 text-left`}>
             {/* Subtle Orange Accent Tag */}

@@ -22,7 +22,9 @@ export class R2StorageProvider implements IStorageProvider {
   private s3Client: S3Client | null = null;
 
   public isConfigured(): boolean {
-    const accountId = process.env.R2_ACCOUNT_ID?.trim();
+    const accountId =
+      process.env.R2_ACCOUNT_ID?.trim() ||
+      process.env.R2_ENDPOINT?.match(/https:\/\/([a-f0-9]+)\.r2/i)?.[1];
     const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
     const bucketName = process.env.R2_BUCKET_NAME?.trim();
@@ -63,7 +65,10 @@ export class R2StorageProvider implements IStorageProvider {
       return this.s3Client;
     }
 
-    const accountId = process.env.R2_ACCOUNT_ID!.trim();
+    const accountId =
+      process.env.R2_ACCOUNT_ID?.trim() ||
+      process.env.R2_ENDPOINT?.match(/https:\/\/([a-f0-9]+)\.r2/i)?.[1] ||
+      '';
     const accessKeyId = process.env.R2_ACCESS_KEY_ID!.trim();
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY!.trim();
     const customEndpoint = process.env.R2_ENDPOINT?.trim();
@@ -90,7 +95,7 @@ export class R2StorageProvider implements IStorageProvider {
     const publicBase = (
       process.env.R2_PUBLIC_URL ||
       process.env.R2_PUBLIC_BASE_URL ||
-      'https://media.axionpacktech.com'
+      'https://pub-a756b10839b346b68dabea7852d66a44.r2.dev'
     ).replace(/\/+$/, '');
 
     return `${publicBase}/${cleanKey}`;

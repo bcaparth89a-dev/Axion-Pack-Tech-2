@@ -81,9 +81,9 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         {/* 2. Breadcrumbs */}
         <nav
           aria-label="Breadcrumb"
-          className="bg-slate-900 border-b border-slate-800 py-3.5 px-6 sm:px-8 lg:px-12 text-xs"
+          className="bg-slate-900 border-b border-slate-800 py-3.5 text-xs"
         >
-          <div className="max-w-7xl mx-auto flex items-center space-x-2 text-slate-400">
+          <div className="container-wide flex items-center space-x-2 text-slate-400">
             <Link
               href="/"
               className="hover:text-white transition-colors duration-150"
@@ -116,7 +116,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
             }}
           />
 
-          <div className="relative z-10 mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+          <div className="relative z-10 container-wide">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
               {/* Left Column: Details & Consultation CTA */}
               <div className="lg:col-span-7">
@@ -186,8 +186,8 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
 
         {/* 4. Service Statistics Bar (If available) */}
         {service.stats && service.stats.length > 0 && (
-          <section className="bg-[#0B1E36] border-b border-sky-900/40 py-8 px-6 sm:px-8 lg:px-12">
-            <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <section className="bg-[#0B1E36] border-b border-sky-900/40 py-8">
+            <div className="container-wide grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               {service.stats.map((stat, sIdx) => (
                 <div key={sIdx} className="space-y-1">
                   <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{stat.value}</p>
@@ -199,7 +199,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         )}
 
         {/* 5. About the Service & Key Capabilities */}
-        <section className="py-16 sm:py-24 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        <section className="py-16 sm:py-24 container-wide">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
             {/* Left: Full Narrative Information */}
             <div className="lg:col-span-7 space-y-8">
@@ -424,8 +424,8 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
 
         {/* 6. Browse Other Services Quick Navigation */}
         {otherServices.length > 0 && (
-          <section className="bg-slate-100/70 border-t border-slate-200 py-16 px-6 sm:px-8 lg:px-12">
-            <div className="max-w-7xl mx-auto">
+          <section className="bg-slate-100/70 border-t border-slate-200 py-16">
+            <div className="container-wide">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <div>
                   <span className="text-xs font-mono uppercase tracking-widest text-sky-700 font-bold">
@@ -485,7 +485,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         )}
 
         {/* 7. Bottom CTA Section */}
-        <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16 sm:py-20">
+        <section className="container-wide py-16 sm:py-20">
           <div className="rounded-3xl bg-gradient-to-r from-[#061527] to-[#0A2244] p-8 sm:p-14 text-white shadow-xl border border-sky-900/40 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
             <div className="max-w-2xl">
               <span className="inline-block rounded-full bg-brand-orange/20 px-3 py-1 text-xs font-semibold text-brand-orange border border-brand-orange/30">

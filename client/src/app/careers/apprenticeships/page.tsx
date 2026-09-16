@@ -22,8 +22,8 @@ export default async function ApprenticeshipsPage() {
       </div>
 
       {/* Breadcrumb Navigation */}
-      <div className="bg-[#061527] border-b border-sky-900/40 text-xs text-slate-400 py-3 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center gap-2">
+      <div className="bg-[#061527] border-b border-sky-900/40 text-xs text-slate-400 py-3">
+        <div className="container-wide flex items-center gap-2">
           <Link href="/" className="hover:text-white transition-colors">
             Home
           </Link>
@@ -40,7 +40,7 @@ export default async function ApprenticeshipsPage() {
       <section className="bg-[#061527] text-white py-14 sm:py-20 border-b border-sky-900/40 relative overflow-hidden">
         <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative container-wide">
           <div className="inline-flex items-center gap-2 rounded-full bg-amber-950/80 px-4 py-1.5 text-xs font-bold text-amber-400 border border-amber-800/60 uppercase tracking-wider mb-4">
             <span>🔧</span>
             <span>{categoryInfo?.badge || "Hands-On Technical Skills"}</span>
@@ -68,7 +68,7 @@ export default async function ApprenticeshipsPage() {
       </section>
 
       {/* Apprenticeship Opportunities Grid */}
-      <section className="py-14 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1">
+      <section className="py-14 sm:py-20 container-wide flex-1">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900">
             Open Technical Apprenticeships

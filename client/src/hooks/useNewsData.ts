@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { NewsCategory, newsCategories as staticNewsCategories } from "@/data/news";
+import { NewsCategory } from "@/data/news";
 import { getNewsCategories } from "@/lib/api/news";
 
 export function useNewsData() {
-  const [categories, setCategories] = useState<NewsCategory[]>(staticNewsCategories);
-  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<NewsCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchCategories = useCallback(async () => {
     try {
       const data = await getNewsCategories();
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setCategories(data);
       }
     } catch {
-      // Retain static fallback
+      // Retain state on error
     } finally {
       setIsLoading(false);
     }

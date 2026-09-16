@@ -21,22 +21,22 @@ export const getContactInfo = cache(async function getContactInfo(): Promise<Con
     if (data && data.companyName) {
       return {
         companyName: data.companyName,
-        tagline: data.tagline || staticContactInfo.tagline,
-        slogan: data.slogan || staticContactInfo.slogan,
-        email: data.email || staticContactInfo.email,
-        phones: data.phones && data.phones.length > 0 ? data.phones : staticContactInfo.phones,
-        website: data.website || staticContactInfo.website,
+        tagline: data.tagline || '',
+        slogan: data.slogan || '',
+        email: data.email || 'info@axionpacktech.com',
+        phones: Array.isArray(data.phones) && data.phones.length > 0 ? data.phones : ['+91 98765 43210'],
+        website: data.website || 'https://axionpacktech.com',
         address: {
-          city: data.address?.city || staticContactInfo.address.city,
-          state: data.address?.state || staticContactInfo.address.state,
-          country: data.address?.country || staticContactInfo.address.country,
-          display: data.address?.display || staticContactInfo.address.display,
+          city: data.address?.city || 'Vadodara',
+          state: data.address?.state || 'Gujarat',
+          country: data.address?.country || 'India',
+          display: data.address?.display || 'Vadodara, Gujarat, India',
         },
         social: {
-          whatsapp: data.social?.whatsapp || staticContactInfo.social.whatsapp,
-          facebook: data.social?.facebook || staticContactInfo.social.facebook,
-          instagram: data.social?.instagram || staticContactInfo.social.instagram,
-          email: data.social?.email || staticContactInfo.social.email,
+          whatsapp: data.social?.whatsapp || '',
+          facebook: data.social?.facebook || '',
+          instagram: data.social?.instagram || '',
+          email: data.social?.email || data.email || 'info@axionpacktech.com',
         },
       };
     }

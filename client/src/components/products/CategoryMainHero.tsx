@@ -192,6 +192,7 @@ export default function CategoryMainHero({ data, isPreview = false }: CategoryMa
                         muted
                         loop
                         playsInline
+                        preload="none"
                         onLoadedData={() => setVideoLoaded(true)}
                         onError={() => setVideoError(true)}
                         className={`w-full h-full object-cover transition-opacity duration-500 ${

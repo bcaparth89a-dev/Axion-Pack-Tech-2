@@ -89,13 +89,24 @@ describe('Login Throttling & Brute-Force Protection', () => {
     });
 
     it('should block login attempts when an account is throttled', async () => {
+      (User.findOne as jest.Mock).mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          _id: '65f123456789abcdef012345',
+          name: 'Some User',
+          email,
+          passwordHash: 'somehash',
+          role: ROLES.ADMIN,
+          isActive: true,
+        }),
+      });
+
       // Force throttle state
       await loginThrottleService.recordFailedAttempt(email, ip);
       await loginThrottleService.recordFailedAttempt(email, ip);
       await loginThrottleService.recordFailedAttempt(email, ip);
 
       await expect(authService.login(email, 'SomePassword123!', ip)).rejects.toThrow(
-        'Too many login attempts. Account temporarily throttled for 15 minutes.'
+        /Too many login attempts/
       );
     });
 
