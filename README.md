@@ -234,6 +234,87 @@ npm run build
 
 ---
 
+
+
+# AXION PackTech — Technology Stack, Free-Tier Limits & Upgrade Policy
+
+Dear Client,
+
+The AXION PackTech website and content management system have been developed using a modern full-stack technology stack. At the current stage, the project is intended to use free-tier services wherever available to keep the initial operating costs low.
+
+The application includes a dynamic product catalog, admin panel, database integration, media storage, security features, caching, contact forms, career applications, and email notifications.
+
+## 1. Technologies and Services Used
+
+| Technology / Service | Purpose | Current Plan / Cost Model |
+|---|---|---|
+| Next.js and React | Website frontend and dynamic pages | Frameworks are open-source; hosting is separate |
+| TypeScript and Tailwind CSS | Type safety and responsive UI design | Open-source |
+| Node.js and Express.js | Backend APIs and application logic | Open-source |
+| MongoDB | Database for products, categories, inquiries and other content | Self-hosted or cloud plan, depending on deployment |
+| Redis | Caching and performance optimization | Open-source software; hosting is separate |
+| Cloudflare R2 | Storage for product images, videos and PDF catalogs | Free tier, subject to account usage |
+| Cloudflare Turnstile | Bot protection for public forms | Free plan, subject to plan conditions |
+| Brevo SMTP | Email notifications and form confirmations | Free plan, if the account is enrolled in that plan |
+| Docker and Docker Compose | Application containerization and deployment | Open-source |
+| Cloudflare CDN | Media delivery and caching | Configuration and applicable plan determine the cost |
+
+**Important:** The project code contains these integrations, but the live account plans, hosting subscriptions and actual usage must be confirmed separately before they can be represented as the current billing status.
+
+## 2. Free-Tier Usage Limits
+
+The following are the published free-tier allowances for relevant services as of October 2026. They are service limits, not guaranteed website traffic capacities.
+
+| Service | Free-Tier Allowance | What Happens When Exceeded |
+|---|---|---|
+| Cloudflare R2 | 10 GB-month of Standard storage, 1 million Class A requests/month and 10 million Class B requests/month | Additional eligible usage is billed according to the pricing schedule |
+| Cloudflare Turnstile | Up to 20 widgets per account and unlimited verification challenges under the Free plan | Enterprise features may require an upgrade |
+| Brevo SMTP | 300 email sends per day | Additional emails may be held or not delivered; a higher plan is needed for increased sending limits |
+| MongoDB Atlas Free | 512 MB of data and index storage | Writes can fail when the storage quota is reached; upgrade to a higher cluster tier |
+| Vercel Hobby, if used | Free hosting allowances subject to resource-specific limits | Some services may be restricted until the quota resets or the account is upgraded |
+
+Official references:
+
+- Cloudflare R2: https://developers.cloudflare.com/r2/pricing/
+- Cloudflare Turnstile: https://developers.cloudflare.com/turnstile/plans/
+- Brevo: https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan
+- MongoDB Atlas: https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/
+- Vercel: https://vercel.com/docs/plans/hobby
+
+**Note:** MongoDB Atlas and Vercel are included as conditional examples of cloud services. The project audit found local/Docker MongoDB and Redis configuration, and does not confirm an active MongoDB Atlas or Vercel production deployment.
+
+## 3. What Happens If Usage Exceeds the Free Limits?
+
+If the website's traffic, storage, email volume or other resource consumption increases beyond the included free allowances, the following actions may be required:
+
+1. **Media storage:** Upgrade the Cloudflare R2 billing arrangement or optimize and archive unnecessary media.
+2. **Email notifications:** Move to a higher Brevo plan if the daily email limit is insufficient.
+3. **Database:** Increase database capacity if the selected cloud database reaches its storage or performance limits.
+4. **Website hosting:** Upgrade the hosting plan or server resources if traffic, compute or bandwidth requirements exceed the current allocation.
+5. **Caching and backend infrastructure:** Increase server resources or use a suitable managed service if the existing infrastructure cannot handle the workload.
+6. **Security services:** Upgrade only if the business requires features or capacity unavailable under the current security plan.
+
+Upgrades will be recommended based on actual usage, performance requirements and the provider's current pricing. Not every service requires a paid upgrade when traffic increases.
+
+## 4. Billing and Upgrade Policy
+
+- The initial implementation uses free-tier services wherever suitable and available.
+- Free-tier allowances are subject to the respective provider's terms, quotas and pricing changes.
+- A free-tier service exceeding its allowance does not necessarily incur an automatic charge; some services restrict functionality, while others bill eligible overages.
+- Any proposed paid subscription, additional hosting expense or infrastructure upgrade should be communicated to the client before the additional cost is committed.
+- The client should approve the applicable plan and billing arrangement before any client-funded upgrade.
+- Domain registration, VPS hosting, paid subscriptions, taxes and other third-party charges are separate unless explicitly included in the project agreement.
+
+## 5. Future Scalability
+
+AXION PackTech has been designed with a modular architecture so that database capacity, media storage, email delivery and hosting resources can be upgraded as business requirements grow.
+
+The current free-tier approach is suitable for controlling initial costs, but actual production capacity depends on the selected hosting environment, configuration, workload and provider limits. No specific number of concurrent users or performance level is guaranteed by a free plan alone.
+
+Thank you.
+
+**AXION PackTech — Technology and Infrastructure Overview**
+
 ## 📄 License
 
 © 2026 AXION PackTech. All Rights Reserved.
